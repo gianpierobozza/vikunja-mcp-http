@@ -11,6 +11,7 @@ import { createVikunjaClient, type VikunjaClientApi } from "./vikunja-client.js"
 type HttpError = Error & {
   status?: number;
   type?: string;
+  body?: unknown;
 };
 
 function methodNotAllowed(_request: Request, response: Response) {
@@ -43,7 +44,13 @@ export function createApp(
 
   app.use((error: unknown, _request: Request, response: Response, _next: NextFunction) => {
     const httpError = error as HttpError;
-    if (httpError.type === "entity.parse.failed" || httpError instanceof SyntaxError) {
+    const isJsonParseError =
+      httpError.type === "entity.parse.failed" ||
+      (httpError instanceof SyntaxError &&
+        httpError.status === 400 &&
+        "body" in httpError);
+
+    if (isJsonParseError) {
       response.status(400).json({
         error: "invalid_json",
         message: "Request body must be valid JSON.",

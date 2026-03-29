@@ -203,7 +203,7 @@ describe("VikunjaClient low-level request behavior", () => {
       },
     });
     expect((scenario.options?.agent as { options: { rejectUnauthorized: boolean } }).options).toMatchObject({
-      keepAlive: false,
+      keepAlive: true,
       rejectUnauthorized: false,
     });
     expect(scenario.writtenBody).toBe('{"label_id":7}');
@@ -232,10 +232,42 @@ describe("VikunjaClient low-level request behavior", () => {
     });
     expect(scenario.url?.toString()).toBe("http://vikunja.example.internal/api/v1/projects");
     expect((scenario.options?.agent as { options: { keepAlive: boolean } }).options).toEqual({
-      keepAlive: false,
+      keepAlive: true,
     });
     expect(scenario.options?.headers).not.toHaveProperty("content-type");
     expect(scenario.writtenBody).toBeUndefined();
+  });
+
+  it("reuses the same https agent across multiple requests", async () => {
+    const firstScenario: RequestScenario = {
+      statusCode: 200,
+      responseChunks: [Buffer.from("{}")],
+    };
+    const secondScenario: RequestScenario = {
+      statusCode: 200,
+      responseChunks: [Buffer.from("{}")],
+    };
+    let callCount = 0;
+    mockInternals.state.httpsRequest = createRequestHandler({
+      get url() {
+        return undefined;
+      },
+      set url(_value: URL | undefined) {},
+    } as RequestScenario);
+    mockInternals.state.httpsRequest = ((url, options, callback) => {
+      const scenario = callCount === 0 ? firstScenario : secondScenario;
+      callCount += 1;
+      return createRequestHandler(scenario)(url, options, callback);
+    }) as RequestHandler;
+
+    const { createVikunjaClient } = await import("../src/vikunja-client.js");
+    const client = createVikunjaClient(createConfig());
+
+    await (client as unknown as { request: Function }).request("GET", "/projects", {});
+    await (client as unknown as { request: Function }).request("GET", "/labels", {});
+
+    expect(firstScenario.options?.agent).toBeDefined();
+    expect(secondScenario.options?.agent).toBe(firstScenario.options?.agent);
   });
 
   it("skips undefined query parameters when building a request URL", async () => {

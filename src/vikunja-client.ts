@@ -163,7 +163,6 @@ function buildPagination(
   headers: IncomingHttpHeaders,
   page: number | undefined,
   perPage: number | undefined,
-  itemsLength: number,
 ): VikunjaPagination {
   return {
     page: page ?? 1,
@@ -217,12 +216,19 @@ export class VikunjaClient implements VikunjaClientApi {
   readonly apiBaseUrl: string;
   readonly verifySsl: boolean;
   readonly apiToken: string;
+  readonly httpAgent: HttpAgent;
+  readonly httpsAgent: HttpsAgent;
 
   constructor(config: AppConfig) {
     this.baseUrl = config.vikunjaBaseUrl;
     this.apiBaseUrl = config.vikunjaApiBaseUrl;
     this.verifySsl = config.verifySsl;
     this.apiToken = config.vikunjaApiToken;
+    this.httpAgent = new HttpAgent({ keepAlive: true });
+    this.httpsAgent = new HttpsAgent({
+      keepAlive: true,
+      rejectUnauthorized: this.verifySsl,
+    });
   }
 
   async probe(): Promise<VikunjaProbeResult> {
@@ -264,7 +270,7 @@ export class VikunjaClient implements VikunjaClientApi {
 
     return {
       items,
-      pagination: buildPagination(response.headers, params.page, params.perPage, items.length),
+      pagination: buildPagination(response.headers, params.page, params.perPage),
     };
   }
 
@@ -296,7 +302,7 @@ export class VikunjaClient implements VikunjaClientApi {
 
     return {
       items,
-      pagination: buildPagination(response.headers, params.page, params.perPage, items.length),
+      pagination: buildPagination(response.headers, params.page, params.perPage),
     };
   }
 
@@ -336,7 +342,7 @@ export class VikunjaClient implements VikunjaClientApi {
 
     return {
       items,
-      pagination: buildPagination(response.headers, params.page, params.perPage, items.length),
+      pagination: buildPagination(response.headers, params.page, params.perPage),
     };
   }
 
@@ -355,7 +361,7 @@ export class VikunjaClient implements VikunjaClientApi {
 
     return {
       items,
-      pagination: buildPagination(response.headers, params.page, params.perPage, items.length),
+      pagination: buildPagination(response.headers, params.page, params.perPage),
     };
   }
 
@@ -413,10 +419,7 @@ export class VikunjaClient implements VikunjaClientApi {
     }
 
     const requestFn = url.protocol === "https:" ? httpsRequest : httpRequest;
-    const agent =
-      url.protocol === "https:"
-        ? new HttpsAgent({ keepAlive: false, rejectUnauthorized: this.verifySsl })
-        : new HttpAgent({ keepAlive: false });
+    const agent = url.protocol === "https:" ? this.httpsAgent : this.httpAgent;
 
     return await new Promise<VikunjaResponse<T>>((resolve, reject) => {
       const request = requestFn(

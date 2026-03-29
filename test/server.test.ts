@@ -217,6 +217,26 @@ describe("createApp", () => {
     });
   });
 
+  it("returns JSON 400 for SyntaxError parser failures that include body-parser metadata", () => {
+    const app = createApp(createConfig(), {
+      vikunjaClient: createMockVikunjaClient(),
+    });
+    const errorHandler = getErrorHandler(app);
+    const response = createResponse();
+    const parserSyntaxError = Object.assign(new SyntaxError("Unexpected token"), {
+      status: 400,
+      body: "{bad json}",
+    });
+
+    errorHandler(parserSyntaxError, createRequest(), response, vi.fn());
+
+    expect(response.status).toHaveBeenCalledWith(400);
+    expect(response.json).toHaveBeenCalledWith({
+      error: "invalid_json",
+      message: "Request body must be valid JSON.",
+    });
+  });
+
   it("returns JSON 413 for oversized request bodies", () => {
     const app = createApp(createConfig(), {
       vikunjaClient: createMockVikunjaClient(),
@@ -246,6 +266,22 @@ describe("createApp", () => {
     expect(response.json).toHaveBeenCalledWith({
       error: "internal_server_error",
       message: "boom",
+    });
+  });
+
+  it("does not misclassify unrelated SyntaxError instances as invalid JSON", () => {
+    const app = createApp(createConfig(), {
+      vikunjaClient: createMockVikunjaClient(),
+    });
+    const errorHandler = getErrorHandler(app);
+    const response = createResponse();
+
+    errorHandler(new SyntaxError("Unexpected identifier"), createRequest(), response, vi.fn());
+
+    expect(response.status).toHaveBeenCalledWith(500);
+    expect(response.json).toHaveBeenCalledWith({
+      error: "internal_server_error",
+      message: "Unexpected identifier",
     });
   });
 
