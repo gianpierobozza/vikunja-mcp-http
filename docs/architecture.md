@@ -25,6 +25,7 @@ The service currently:
 - verifies final state after write operations
 - returns precise, useful results to the MCP client
 - exposes a health endpoint for operational checks
+- emits concise runtime logs to stdout/stderr for startup, health checks, auth failures, MCP requests, tool outcomes, and Vikunja upstream failures
 
 ## Why HTTP instead of local STDIO
 
@@ -131,6 +132,7 @@ The current implementation uses:
 - official MCP TypeScript SDK
 - Zod for config validation
 - stateless Streamable HTTP transport
+- fixed, built-in single-line logging via the Node console
 - Docker packaging
 - GitHub Actions CI and automated GHCR publishing
 - manual GHCR publishing fallback documentation
@@ -144,6 +146,7 @@ The repository has been validated through:
 - `npm run build`
 - `npm run test`
 - in-memory MCP checks during implementation
+- unit coverage for the logging layer and its main server/MCP/client touchpoints
 - Docker image build and packaged smoke checks
 - real GHCR publication
 - real TrueNAS deployment

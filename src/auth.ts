@@ -1,6 +1,8 @@
 import { timingSafeEqual } from "node:crypto";
 import type { RequestHandler } from "express";
 
+import { logWarn } from "./logger.js";
+
 function safeTokenEqual(actual: string, expected: string): boolean {
   const actualBuffer = Buffer.from(actual);
   const expectedBuffer = Buffer.from(expected);
@@ -31,6 +33,11 @@ export function requireBearerAuth(expectedToken: string): RequestHandler {
     const token = extractBearerToken(request.header("authorization"));
 
     if (!token || !safeTokenEqual(token, expectedToken)) {
+      logWarn("auth", "unauthorized", {
+        method: request.method,
+        path: request.path ?? request.originalUrl,
+      });
+
       response.status(401).json({
         error: "unauthorized",
         message: "A valid bearer token is required for this endpoint.",

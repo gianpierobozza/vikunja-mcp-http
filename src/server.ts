@@ -5,6 +5,7 @@ import express, { type NextFunction, type Request, type Response } from "express
 import { requireBearerAuth } from "./auth.js";
 import { loadConfig, SERVICE_NAME, type AppConfig } from "./config.js";
 import { createHealthHandler } from "./health.js";
+import { logError, logInfo, logWarn } from "./logger.js";
 import { createMcpHandler } from "./mcp.js";
 import { createVikunjaClient, type VikunjaClientApi } from "./vikunja-client.js";
 
@@ -14,7 +15,13 @@ type HttpError = Error & {
   body?: unknown;
 };
 
-function methodNotAllowed(_request: Request, response: Response) {
+function methodNotAllowed(request: Request, response: Response) {
+  logWarn("mcp", "method_not_allowed", {
+    method: request.method,
+    path: request.path ?? request.originalUrl,
+    status: 405,
+  });
+
   response.status(405).set("Allow", "POST").json({
     jsonrpc: "2.0",
     error: {
@@ -51,6 +58,12 @@ export function createApp(
         "body" in httpError);
 
     if (isJsonParseError) {
+      logWarn("http", "invalid_json", {
+        method: _request.method,
+        path: _request.path ?? _request.originalUrl,
+        status: 400,
+      });
+
       response.status(400).json({
         error: "invalid_json",
         message: "Request body must be valid JSON.",
@@ -59,6 +72,12 @@ export function createApp(
     }
 
     if (httpError.type === "entity.too.large" || httpError.status === 413) {
+      logWarn("http", "payload_too_large", {
+        method: _request.method,
+        path: _request.path ?? _request.originalUrl,
+        status: 413,
+      });
+
       response.status(413).json({
         error: "payload_too_large",
         message: "Request body is too large.",
@@ -67,6 +86,13 @@ export function createApp(
     }
 
     const message = error instanceof Error ? error.message : "Unexpected server error.";
+
+    logError("http", "internal_server_error", {
+      method: _request.method,
+      path: _request.path ?? _request.originalUrl,
+      status: 500,
+      message,
+    });
 
     response.status(500).json({
       error: "internal_server_error",
@@ -81,8 +107,26 @@ export function startServer(config: AppConfig) {
   const app = createApp(config);
 
   return app.listen(config.port, () => {
-    console.log(`${SERVICE_NAME} listening on port ${config.port}`);
+    logInfo("server", "listening", {
+      service: SERVICE_NAME,
+      port: config.port,
+    });
   });
+}
+
+export function bootstrapServer(
+  load: () => AppConfig = loadConfig,
+  start: (config: AppConfig) => ReturnType<typeof startServer> = startServer,
+) {
+  try {
+    return start(load());
+  } catch (error) {
+    logError("server", "startup_failed", {
+      service: SERVICE_NAME,
+      message: error instanceof Error ? error.message : "Unexpected startup error.",
+    });
+    throw error;
+  }
 }
 
 const isMainModule =
@@ -90,5 +134,5 @@ const isMainModule =
   import.meta.url === pathToFileURL(process.argv[1]).href;
 
 if (isMainModule) {
-  startServer(loadConfig());
+  bootstrapServer();
 }

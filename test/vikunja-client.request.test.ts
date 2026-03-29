@@ -170,6 +170,7 @@ describe("VikunjaClient low-level request behavior", () => {
     mockInternals.state.httpsRequest = createRequestHandler(scenario);
     const { createVikunjaClient } = await import("../src/vikunja-client.js");
     const client = createVikunjaClient(createConfig({ verifySsl: false }));
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
     const result = await (client as unknown as { request: Function }).request("PUT", "/tasks/12/labels", {
       query: {
@@ -207,6 +208,7 @@ describe("VikunjaClient low-level request behavior", () => {
       rejectUnauthorized: false,
     });
     expect(scenario.writtenBody).toBe('{"label_id":7}');
+    expect(warnSpy).not.toHaveBeenCalled();
   });
 
   it("builds plain http requests without a JSON body and parses empty responses", async () => {
@@ -297,6 +299,7 @@ describe("VikunjaClient low-level request behavior", () => {
     mockInternals.state.httpsRequest = createRequestHandler(scenario);
     const { VikunjaClientError, createVikunjaClient } = await import("../src/vikunja-client.js");
     const client = createVikunjaClient(createConfig());
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
     await expect(
       (client as unknown as { request: Function }).request("GET", "/projects", {}),
@@ -309,6 +312,9 @@ describe("VikunjaClient low-level request behavior", () => {
           message: "Invalid Vikunja token.",
         },
       }),
+    );
+    expect(warnSpy).toHaveBeenCalledWith(
+      'WARN vikunja request_failed method=GET path=/api/v1/projects status=401 message="Invalid Vikunja token."',
     );
   });
 
@@ -355,6 +361,7 @@ describe("VikunjaClient low-level request behavior", () => {
     mockInternals.state.httpsRequest = createRequestHandler(scenario);
     const { createVikunjaClient } = await import("../src/vikunja-client.js");
     const client = createVikunjaClient(createConfig());
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
     await expect(
       (client as unknown as { request: Function }).request("GET", "/projects", {}),
@@ -363,6 +370,10 @@ describe("VikunjaClient low-level request behavior", () => {
     });
     expect(scenario.destroyedWith).toBeInstanceOf(Error);
     expect(scenario.destroyedWith?.message).toBe("Request timed out");
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(warnSpy).toHaveBeenCalledWith(
+      'WARN vikunja request_failed method=GET path=/api/v1/projects message="Request timed out." timeout_ms=10000',
+    );
   });
 
   it("wraps low-level request errors as connectivity errors", async () => {
@@ -372,11 +383,16 @@ describe("VikunjaClient low-level request behavior", () => {
     mockInternals.state.httpsRequest = createRequestHandler(scenario);
     const { createVikunjaClient } = await import("../src/vikunja-client.js");
     const client = createVikunjaClient(createConfig());
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
     await expect(
       (client as unknown as { request: Function }).request("GET", "/projects", {}),
     ).rejects.toMatchObject({
       message: "Unable to connect to Vikunja.",
     });
+    expect(warnSpy).toHaveBeenCalledWith(
+      'WARN vikunja request_failed method=GET path=/api/v1/projects message="Unable to connect to Vikunja."',
+    );
+    expect(warnSpy.mock.calls[0]?.[0]).not.toContain("vikunja-token");
   });
 });

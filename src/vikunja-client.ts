@@ -3,6 +3,7 @@ import { Agent as HttpsAgent, request as httpsRequest } from "node:https";
 import type { IncomingHttpHeaders } from "node:http";
 
 import type { AppConfig } from "./config.js";
+import { logWarn } from "./logger.js";
 import { SERVICE_NAME, SERVICE_VERSION } from "./config.js";
 
 type QueryPrimitive = string | number | boolean;
@@ -420,8 +421,11 @@ export class VikunjaClient implements VikunjaClientApi {
 
     const requestFn = url.protocol === "https:" ? httpsRequest : httpRequest;
     const agent = url.protocol === "https:" ? this.httpsAgent : this.httpAgent;
+    const requestPath = url.pathname;
 
     return await new Promise<VikunjaResponse<T>>((resolve, reject) => {
+      let timedOut = false;
+
       const request = requestFn(
         url,
         {
@@ -461,12 +465,21 @@ export class VikunjaClient implements VikunjaClientApi {
               return;
             }
 
+            const message = extractErrorMessage(
+              parsedBody,
+              `Vikunja ${method} ${url.pathname} failed with HTTP ${statusCode}.`,
+            );
+
+            logWarn("vikunja", "request_failed", {
+              method,
+              path: requestPath,
+              status: statusCode,
+              message,
+            });
+
             reject(
               new VikunjaClientError(
-                extractErrorMessage(
-                  parsedBody,
-                  `Vikunja ${method} ${url.pathname} failed with HTTP ${statusCode}.`,
-                ),
+                message,
                 {
                   statusCode,
                   responseBody: parsedBody,
@@ -478,10 +491,25 @@ export class VikunjaClient implements VikunjaClientApi {
       );
 
       request.on("timeout", () => {
+        timedOut = true;
+        logWarn("vikunja", "request_failed", {
+          method,
+          path: requestPath,
+          message: "Request timed out.",
+          timeout_ms: 10000,
+        });
         request.destroy(new Error("Request timed out"));
       });
 
       request.on("error", (error) => {
+        if (!timedOut) {
+          logWarn("vikunja", "request_failed", {
+            method,
+            path: requestPath,
+            message: "Unable to connect to Vikunja.",
+          });
+        }
+
         reject(
           new VikunjaClientError("Unable to connect to Vikunja.", {
             cause: error,
