@@ -377,6 +377,22 @@ function assertArray<T>(value: unknown, message: string): T[] {
   return value as T[];
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function normalizeReactionMaps(value: unknown): VikunjaReactionMap[] {
+  if (Array.isArray(value)) {
+    return value as VikunjaReactionMap[];
+  }
+
+  if (isRecord(value)) {
+    return Object.keys(value).length === 0 ? [] : [value as VikunjaReactionMap];
+  }
+
+  throw new Error("Expected a reaction list from Vikunja.");
+}
+
 function normalizeTaskRelations(taskId: number, relatedTasks: unknown): VikunjaTaskRelation[] {
   const relations = new Map<string, VikunjaTaskRelation>();
 
@@ -928,7 +944,7 @@ export class VikunjaClient implements VikunjaClientApi {
       "GET",
       `/${entityKind}/${entityId}/reactions`,
     );
-    return assertArray<VikunjaReactionMap>(response.data, "Expected a reaction list from Vikunja.");
+    return normalizeReactionMaps(response.data);
   }
 
   async addReaction(

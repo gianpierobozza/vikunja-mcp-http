@@ -379,4 +379,30 @@ describe("VikunjaClient Milestone 8 mappings", () => {
       body: { value: "😀" },
     });
   });
+
+  it("normalizes single-map and empty-map reaction responses from Vikunja", async () => {
+    const client = createVikunjaClient(createConfig());
+    const internalClient = client as unknown as InternalVikunjaClient;
+
+    vi.spyOn(internalClient, "request")
+      .mockResolvedValueOnce({
+        data: {
+          "😀": [{ id: 7, username: "gm" }],
+        },
+        headers: {},
+        statusCode: 200,
+      })
+      .mockResolvedValueOnce({
+        data: {},
+        headers: {},
+        statusCode: 200,
+      });
+
+    await expect(client.listReactions("comments", 12)).resolves.toEqual([
+      {
+        "😀": [{ id: 7, username: "gm" }],
+      },
+    ]);
+    await expect(client.listReactions("tasks", 16)).resolves.toEqual([]);
+  });
 });
