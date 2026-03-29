@@ -534,6 +534,159 @@ describe("Milestone 8 MCP tools", () => {
     });
   });
 
+  it("lists reactions for supported entities", async () => {
+    await withServer(async (server, client) => {
+      client.listReactions.mockResolvedValueOnce([
+        {
+          "😀": [{ id: 7, username: "gm" }],
+        },
+      ]);
+
+      const result = await callTool(server, "reactions_list", {
+        entity_kind: "comments",
+        entity_id: 12,
+      });
+
+      expect(client.listReactions).toHaveBeenCalledWith("comments", 12);
+      expect(getStructuredContent(result)).toEqual({
+        items: [
+          {
+            "😀": [{ id: 7, username: "gm" }],
+          },
+        ],
+      });
+    });
+  });
+
+  it("adds reactions with verification and reports already_present precisely", async () => {
+    await withServer(async (server, client) => {
+      client.listReactions
+        .mockResolvedValueOnce([
+          {
+            "😀": [{ id: 3, username: "other" }],
+          },
+        ])
+        .mockResolvedValueOnce([
+          {
+            "😀": [
+              { id: 3, username: "other" },
+              { id: 7, username: "gm" },
+            ],
+          },
+        ])
+        .mockResolvedValueOnce([
+          {
+            "😀": [{ id: 7, username: "gm" }],
+          },
+        ])
+        .mockResolvedValueOnce([
+          {
+            "😀": [{ id: 7, username: "gm" }],
+          },
+        ]);
+      client.addReaction
+        .mockResolvedValueOnce({
+          value: "😀",
+          user: { id: 7, username: "gm" },
+        })
+        .mockResolvedValueOnce({
+          value: "😀",
+          user: { id: 7, username: "gm" },
+        });
+
+      const addResult = await callTool(server, "reaction_add", {
+        entity_kind: "tasks",
+        entity_id: 16,
+        reaction: "😀",
+      });
+      const alreadyPresentResult = await callTool(server, "reaction_add", {
+        entity_kind: "comments",
+        entity_id: 12,
+        reaction: "😀",
+      });
+
+      expect(client.addReaction).toHaveBeenNthCalledWith(1, "tasks", 16, "😀");
+      expect(client.addReaction).toHaveBeenNthCalledWith(2, "comments", 12, "😀");
+      expect(getStructuredContent(addResult)).toEqual({
+        entity_kind: "tasks",
+        entity_id: 16,
+        reaction: "😀",
+        already_present: false,
+        reactions: [
+          {
+            "😀": [
+              { id: 3, username: "other" },
+              { id: 7, username: "gm" },
+            ],
+          },
+        ],
+      });
+      expect(getStructuredContent(alreadyPresentResult)).toEqual({
+        entity_kind: "comments",
+        entity_id: 12,
+        reaction: "😀",
+        already_present: true,
+        reactions: [
+          {
+            "😀": [{ id: 7, username: "gm" }],
+          },
+        ],
+      });
+    });
+  });
+
+  it("removes reactions and reports already_absent idempotently", async () => {
+    await withServer(async (server, client) => {
+      client.listReactions
+        .mockResolvedValueOnce([
+          {
+            "😀": [
+              { id: 7, username: "gm" },
+              { id: 3, username: "other" },
+            ],
+          },
+        ])
+        .mockResolvedValueOnce([
+          {
+            "😀": [{ id: 3, username: "other" }],
+          },
+        ])
+        .mockResolvedValueOnce([]);
+
+      const removeResult = await callTool(server, "reaction_remove", {
+        entity_kind: "tasks",
+        entity_id: 16,
+        reaction: "😀",
+      });
+      const alreadyAbsentResult = await callTool(server, "reaction_remove", {
+        entity_kind: "comments",
+        entity_id: 12,
+        reaction: "😀",
+      });
+
+      expect(client.removeReaction).toHaveBeenCalledTimes(1);
+      expect(client.removeReaction).toHaveBeenCalledWith("tasks", 16, "😀");
+      expect(getStructuredContent(removeResult)).toEqual({
+        entity_kind: "tasks",
+        entity_id: 16,
+        reaction: "😀",
+        already_absent: false,
+        reactions: [
+          {
+            "😀": [{ id: 3, username: "other" }],
+          },
+        ],
+      });
+      expect(getStructuredContent(alreadyAbsentResult)).toEqual({
+        entity_kind: "comments",
+        entity_id: 12,
+        reaction: "😀",
+        already_absent: true,
+        reactions: [],
+      });
+    });
+  });
+
   it("lists, creates, updates, and deletes task comments with verification", async () => {
     await withServer(async (server, client) => {
       client.listTaskComments.mockResolvedValueOnce([{ id: 12, comment: "First" }]);

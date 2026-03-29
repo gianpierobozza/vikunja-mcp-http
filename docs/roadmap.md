@@ -8,6 +8,7 @@ The implementation blueprint has been applied, the runtime exists, and packaging
 The remaining work is:
 
 - run the expanded Milestone 8 live write-path validation from fresh Codex sessions
+- run the new reaction add/remove validation for both tasks and comments against the deployed bridge
 - continue reliability and usability polish from real usage
 - keep documentation aligned with proven deployment behavior
 
@@ -155,6 +156,7 @@ Implemented scope:
 - bucket CRUD
 - task delete and task move
 - task label list and remove
+- generic reactions for tasks and comments
 - user search and task assignee add/remove/list
 - label CRUD
 - task comment CRUD

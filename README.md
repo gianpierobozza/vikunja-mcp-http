@@ -71,6 +71,7 @@ Implemented now:
 - label tools: `labels_list`, `label_get`, `label_create`, `label_update`, `label_delete`, `task_labels_list`, `task_add_label`, `task_remove_label`
 - user and assignee tools: `users_search`, `task_assignees_list`, `task_assign_user`, `task_unassign_user`
 - comment tools: `task_comments_list`, `task_comment_get`, `task_comment_create`, `task_comment_update`, `task_comment_delete`
+- reaction tools: `reactions_list`, `reaction_add`, `reaction_remove`
 - relation tools: `task_relations_list`, `task_relation_create`, `task_relation_delete`
 - view tools: `views_list`, `view_create`, `view_update`, `view_delete`
 - bucket tools: `buckets_list`, `bucket_create`, `bucket_update`, `bucket_delete`
@@ -93,6 +94,7 @@ Known quirk:
 
 - `buckets_list` reflects bucket metadata from Vikunja, but bucket task counts may appear as `0` even when `tasks_list` for the kanban view shows tasks in those buckets. For actual bucket occupancy, treat `tasks_list` as the authoritative source.
 - `task_relations_list` is derived from the task's `related_tasks` state because the current Vikunja OpenAPI exposes relation create/delete operations but not a dedicated relation-list endpoint.
+- reaction tools support the Vikunja entity kinds currently exposed by the official API here: `tasks` and `comments`.
 
 ## Not in the first version
 

@@ -188,6 +188,48 @@ describe("Milestone 8 coverage branches", () => {
     });
   });
 
+  it("covers reaction schema validation and fallback verification branches", async () => {
+    await withServer(async (server, client) => {
+      client.listReactions
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([
+          {
+            "😀": [{ id: 7, username: "gm" }],
+          },
+        ]);
+      client.addReaction.mockResolvedValueOnce({
+        value: "😀",
+      });
+
+      await expect(
+        callTool(server, "reactions_list", {
+          entity_kind: "labels",
+          entity_id: 5,
+        }),
+      ).rejects.toThrow();
+
+      expect(
+        getStructuredContent(
+          await callTool(server, "reaction_add", {
+            entity_kind: "tasks",
+            entity_id: 16,
+            reaction: "😀",
+          }),
+        ),
+      ).toEqual({
+        entity_kind: "tasks",
+        entity_id: 16,
+        reaction: "😀",
+        already_present: false,
+        reactions: [
+          {
+            "😀": [{ id: 7, username: "gm" }],
+          },
+        ],
+      });
+    });
+  });
+
   it("uses the project_delete fallback list check when the project getter still resolves", async () => {
     await withServer(async (server, client) => {
       client.getProject
@@ -367,6 +409,50 @@ describe("Milestone 8 coverage branches", () => {
           }),
         ),
       ).toContain("task_relation_delete verification failed");
+    });
+  });
+
+  it("returns verification errors for reaction add and remove guard paths", async () => {
+    await withServer(async (server, client) => {
+      client.listReactions
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([
+          {
+            "😀": [{ id: 7, username: "gm" }],
+          },
+        ])
+        .mockResolvedValueOnce([
+          {
+            "😀": [
+              { id: 7, username: "gm" },
+              { id: 3, username: "other" },
+            ],
+          },
+        ]);
+      client.addReaction.mockResolvedValueOnce({
+        value: "😀",
+        user: { id: 7, username: "gm" },
+      });
+
+      expect(
+        getErrorText(
+          await callTool(server, "reaction_add", {
+            entity_kind: "tasks",
+            entity_id: 16,
+            reaction: "😀",
+          }),
+        ),
+      ).toContain("reaction_add verification failed");
+      expect(
+        getErrorText(
+          await callTool(server, "reaction_remove", {
+            entity_kind: "comments",
+            entity_id: 12,
+            reaction: "😀",
+          }),
+        ),
+      ).toContain("reaction count increased unexpectedly");
     });
   });
 

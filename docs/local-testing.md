@@ -128,17 +128,19 @@ Suggested sequence:
 9. create a disposable label
 10. add the label to the task, then remove it again
 11. search for a visible user, assign them to the task, then unassign them
-12. create a comment on the task, update it, then delete it
-13. create a relation from the task to another disposable or known-safe task, then delete it
-14. delete the disposable task with `confirm=true`
-15. delete the disposable bucket with `confirm=true`
-16. delete the disposable view with `confirm=true`
-17. delete the disposable label with `confirm=true`
-18. delete the disposable project with `confirm=true`
+12. add a reaction to the task, then remove it again
+13. create a comment on the task, update it, add a reaction to it, remove that reaction, then delete the comment
+14. create a relation from the task to another disposable or known-safe task, then delete it
+15. delete the disposable task with `confirm=true`
+16. delete the disposable bucket with `confirm=true`
+17. delete the disposable view with `confirm=true`
+18. delete the disposable label with `confirm=true`
+19. delete the disposable project with `confirm=true`
 
 Notes:
 
 - `task_move` prioritizes verified bucket placement; position is best-effort unless the final task state matches exactly
+- reaction tools currently support the Vikunja entity kinds `tasks` and `comments`
 - `task_relations_list` is derived from the task's `related_tasks` state because the current Vikunja OpenAPI does not expose a dedicated relation-list endpoint
 - if user assignment is not available in your Vikunja setup, skip the assignee steps and note the external limitation
 

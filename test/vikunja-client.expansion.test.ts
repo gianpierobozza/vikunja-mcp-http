@@ -341,4 +341,42 @@ describe("VikunjaClient Milestone 8 mappings", () => {
       },
     ]);
   });
+
+  it("maps generic reaction operations for tasks and comments", async () => {
+    const client = createVikunjaClient(createConfig());
+    const internalClient = client as unknown as InternalVikunjaClient;
+    const requestSpy = vi
+      .spyOn(internalClient, "request")
+      .mockResolvedValueOnce({
+        data: [{ "😀": [{ id: 7, username: "gm" }] }],
+        headers: {},
+        statusCode: 200,
+      })
+      .mockResolvedValueOnce({
+        data: {
+          value: "😀",
+          user: { id: 7, username: "gm" },
+        },
+        headers: {},
+        statusCode: 200,
+      })
+      .mockResolvedValueOnce({
+        data: { message: "deleted" },
+        headers: {},
+        statusCode: 200,
+      });
+
+    await client.listReactions("tasks", 16);
+    await client.addReaction("comments", 12, "😀");
+    await client.removeReaction("comments", 12, "😀");
+
+    expect(requestSpy).toHaveBeenNthCalledWith(1, "GET", "/tasks/16/reactions");
+    expect(requestSpy).toHaveBeenNthCalledWith(2, "PUT", "/comments/12/reactions", {
+      body: { value: "😀" },
+      expectedStatusCodes: [200, 201],
+    });
+    expect(requestSpy).toHaveBeenNthCalledWith(3, "POST", "/comments/12/reactions/delete", {
+      body: { value: "😀" },
+    });
+  });
 });
