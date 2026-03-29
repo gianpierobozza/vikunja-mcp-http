@@ -1,92 +1,118 @@
-# TrueNAS Install Direction
+# TrueNAS Install Guide
 
 ## Goal
 
-The project is intended to be deployable on a TrueNAS home-lab system as a persistent LAN-reachable service.
+Deploy `vikunja-mcp-http` on TrueNAS as an always-on LAN service that exposes:
 
-The preferred distribution target is a custom app deployment flow, not a one-off manual container hack.
+- `GET /healthz`
+- `POST /mcp`
 
-## Why TrueNAS is a first-class target
+The recommended v1 path is TrueNAS `Install via YAML`, because it gives the cleanest reinstall story for a single-container service.
 
-TrueNAS is part of the core intended use case.
+## What the Container Needs
 
-The bridge should be:
+The bridge is intentionally small.
 
-- easy to deploy from a container image
-- easy to reinstall
-- easy to configure with environment variables
-- stable enough to act as a persistent MCP endpoint for Codex
+For v1 it requires:
 
-## Planned deployment model
+- one container image
+- one TCP port mapping
+- four required environment variables
+- no persistent storage volumes
 
-The expected deployment path is:
+## Prerequisites
 
-- build the bridge as a container image
-- publish that image
-- install it on TrueNAS as a custom app
-- expose the HTTP MCP endpoint on the local network
-- point Codex to the LAN endpoint
+Before installing on TrueNAS, have these ready:
 
-## Preferred install artifact
+- a published OCI image, for example `ghcr.io/YOUR_GITHUB_NAMESPACE/vikunja-mcp-http:latest`
+- the base URL for your Vikunja instance
+- a Vikunja API token for the bridge
+- a bearer token that Codex or other MCP clients will send to `/mcp`
+- a LAN host name or IP for the TrueNAS box
 
-The preferred long-term artifact is a reusable YAML-based install definition suitable for the TrueNAS custom app flow.
+If the Vikunja instance uses a self-signed certificate, plan to set `VERIFY_SSL` to `false`.
 
-That gives a better reinstall story than relying only on click-by-click manual setup.
+## Recommended TrueNAS YAML
 
-## First-version runtime expectations
+From the TrueNAS Apps screen, open `Discover Apps`, then use `Install via YAML`.
 
-The first deployment should likely require only:
+Paste a Compose file like this:
 
-- application container
-- network port mapping
-- environment variables
-- no persistent storage volume
+```yaml
+name: vikunja-mcp-http
 
-That keeps the first deployment simple.
+services:
+  app:
+    image: ghcr.io/YOUR_GITHUB_NAMESPACE/vikunja-mcp-http:latest
+    restart: unless-stopped
+    environment:
+      PORT: "4010"
+      MCP_BEARER_TOKEN: "replace-me"
+      VIKUNJA_URL: "https://vikunja.example.internal"
+      VIKUNJA_API_TOKEN: "replace-me"
+      VERIFY_SSL: "true"
+    ports:
+      - "4010:4010/tcp"
+```
 
-## Planned environment variables
+Notes:
 
-Expected runtime configuration will likely include:
+- keep the host and container port the same for the first deployment
+- no volume mounts are needed for v1
+- if you later change `PORT`, update the container-side port mapping too
 
-- `PORT`
-- `MCP_BEARER_TOKEN`
-- `VIKUNJA_URL`
-- `VIKUNJA_API_TOKEN`
-- optional SSL-related configuration if needed
+## Install Steps
 
-## Planned network exposure
+1. Open `Apps`.
+2. Open `Discover Apps`.
+3. Use `Install via YAML`.
+4. Enter a lowercase app name, for example `vikunja-mcp-http`.
+5. Paste the Compose YAML.
+6. Save and wait for the app to deploy.
 
-The first deployment target is local-network access only.
+## Post-Install Checks
 
-This means:
+Once the container is running, verify the health endpoint from another machine on the LAN:
 
-- reachable from the developer machine and other trusted LAN clients
-- no public internet exposure
-- no unnecessary ingress complexity in v1
+```bash
+curl http://TRUENAS_IP_OR_HOSTNAME:4010/healthz
+```
 
-## Health and operability
+Expected result:
 
-The deployed service should expose a health endpoint.
+- `200` when Vikunja is reachable and the bridge token is valid
+- `503` when the bridge is up but Vikunja is unreachable or misconfigured
 
-That should make it easy to confirm:
+Then confirm the MCP endpoint is reachable:
 
-- container is up
-- configuration loaded correctly
-- Vikunja is reachable
+```bash
+curl -i -X POST http://TRUENAS_IP_OR_HOSTNAME:4010/mcp \
+  -H 'content-type: application/json' \
+  -H 'authorization: Bearer replace-me' \
+  -d '{}'
+```
 
-## Non-goals for the first deployment
+Expected result:
 
-The first TrueNAS deployment should avoid unnecessary complexity such as:
+- an MCP-shaped error or protocol response
+- not a connection failure
+- not an HTML page
 
-- public exposure
-- external auth providers
-- multi-user management
-- extra infrastructure services
-- persistent databases or caches
+## Codex LAN Endpoint
 
-## What this document is for
+After the app is up, point Codex at:
 
-This file records the intended deployment direction.
+```text
+http://TRUENAS_IP_OR_HOSTNAME:4010/mcp
+```
 
-It is not yet the final installation guide.
-That should be written only after the containerized version actually exists and has been tested.
+Use the same bearer token you set as `MCP_BEARER_TOKEN`.
+
+The matching Codex setup flow is documented in `docs/codex-config.md`.
+
+## Operational Notes
+
+- keep this service LAN-only in v1
+- do not put it directly on the public internet
+- there is no persistent storage requirement for the bridge itself
+- if the image is private in GHCR, TrueNAS must be able to authenticate before deployment

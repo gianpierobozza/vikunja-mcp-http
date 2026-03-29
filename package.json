@@ -1,0 +1,34 @@
+{
+  "name": "vikunja-mcp-http",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Self-hostable HTTP MCP bridge for Vikunja",
+  "type": "module",
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.17.5",
+    "express": "^5.1.0",
+    "zod": "^4.1.5"
+  },
+  "devDependencies": {
+    "@types/supertest": "^6.0.3",
+    "@vitest/coverage-v8": "^4.0.7",
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.0.0",
+    "supertest": "^7.1.4",
+    "tsx": "^4.20.5",
+    "typescript": "^5.8.3",
+    "vitest": "^4.0.7"
+  }
+}

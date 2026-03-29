@@ -2,12 +2,10 @@
 
 ## Project stage
 
-This repository is in the planning and bootstrap phase.
+This repository is in the implementation hardening and deployment-readiness phase.
 
-Do not jump straight into implementation.
-Do not create runtime code, scaffolding, package manager setup, or infrastructure files unless explicitly asked.
-
-At this stage, clarity of product scope and deployment shape matters more than speed.
+Core runtime code, packaging artifacts, and deployment docs already exist.
+Default to refining the current implementation and validating it in real environments instead of planning from scratch.
 
 ## Project goal
 
@@ -24,22 +22,23 @@ The intended usage is:
 
 Priority order:
 
-1. define the repository structure
-2. define product scope and non-goals
-3. define architecture and deployment shape
-4. define the first implementation milestone
-5. only then begin code and packaging work
+1. validate the bridge against a real Vikunja instance and real LAN usage
+2. expand automated test coverage beyond the current config, auth, client, and tool tests
+3. keep docs, runtime behavior, and packaging aligned
+4. improve reliability and error clarity without widening scope
+5. only then consider expanding the tool surface
 
 ## Guardrails
 
 Unless explicitly requested:
 
-- do not create `package.json`
-- do not create `src/`
-- do not scaffold a TypeScript app
-- do not add Docker or compose files
+- do not replace the current TypeScript, Express, or official MCP SDK stack
+- do not broaden the public tool surface beyond the documented v1 tools
+- do not add public internet exposure, OAuth, or broad destructive delete flows
+- do not add persistent services such as databases, queues, or caches
 - do not invent endpoints or features not grounded in the docs
-- do not silently choose frameworks or dependencies without explanation
+- do not document live Vikunja, GHCR, or TrueNAS validation as complete unless it was actually run
+- do not silently change deployment contracts such as endpoints, env vars, or auth boundaries without explanation
 
 When technical choices are needed, present options and tradeoffs before committing.
 
@@ -50,19 +49,32 @@ When working in this repo:
 1. read the repository docs first
 2. keep the public-facing goal in mind
 3. prefer small, reviewable steps
-4. plan before implementing
+4. validate implemented behavior, not just intended behavior
 5. keep recommendations practical and opinionated
 6. treat TrueNAS deployment as an explicit product goal, not an afterthought
+7. update the docs when the runtime behavior changes
 
 ## Implementation philosophy
 
-When implementation begins:
+The current implementation should continue to follow these rules:
 
 - keep the server narrow and focused
 - prefer a thin bridge over an overengineered platform
 - verify final state after write operations
 - favor idempotent behavior when practical
 - keep the service easy to self-host and reason about
+
+## Testing rule
+
+Every new behavior change or implementation change must add or update unit tests in the same change.
+
+For new or modified code:
+
+- cover the changed behavior with focused unit tests
+- run `npm run test` and `npm run test:coverage`
+- maintain at least 90% coverage on the new code being introduced or changed
+
+Do not treat a change as done if it materially changes behavior without automated coverage, unless the user explicitly approves that tradeoff.
 
 ## Documentation rule
 
@@ -71,12 +83,12 @@ Documentation should stay aligned with the actual project state.
 Do not document features as complete when they are only planned.
 Do not present speculative future work as if it already exists.
 
-## Definition of done for planning work
+## Definition of done for current work
 
-A planning task is done when it results in one or more of:
+A task is done when it results in one or more of:
 
-- a clarified requirement
-- a documented architecture decision
-- a sequenced milestone plan
-- explicit non-goals
-- a concrete next implementation step
+- code that matches the existing architecture and passes available checks
+- documentation updated to reflect the real project state
+- a validated local, container, or deployment step
+- new automated coverage for a real behavior
+- an explicit note about any remaining external validation gap

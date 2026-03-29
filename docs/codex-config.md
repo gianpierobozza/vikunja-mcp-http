@@ -2,68 +2,80 @@
 
 ## Goal
 
-This project is intended to be consumed by Codex as a remote HTTP MCP server instead of only as a local STDIO process.
+Connect Codex to `vikunja-mcp-http` as a remote Streamable HTTP MCP server over the local network.
 
-That means the client configuration should ultimately point to a stable network endpoint.
+The bridge expects:
 
-## Why this matters
+- the MCP endpoint at `/mcp`
+- a bearer token on incoming MCP requests
 
-A persistent HTTP endpoint is preferable when the MCP bridge is used frequently:
+## Prerequisites
 
-- the server can remain always available
-- the tooling path is stable across sessions
-- the service can live on dedicated infrastructure such as TrueNAS
-- the development machine no longer needs to spawn the MCP process locally each time
+Before adding the server in Codex:
 
-## Intended Codex shape
+- the bridge is already running locally or on TrueNAS
+- you know the full MCP URL, for example `http://truenas.local:4010/mcp`
+- you know the bearer token configured as `MCP_BEARER_TOKEN` on the bridge
 
-The eventual Codex configuration should point to a URL-based MCP server.
+Export that token into your local shell:
 
-Example shape:
+```bash
+export VIKUNJA_MCP_BEARER='replace-me'
+```
+
+## Recommended Codex CLI Setup
+
+Add the remote server with the Codex CLI:
+
+```bash
+codex mcp add vikunja \
+  --url http://TRUENAS_IP_OR_HOSTNAME:4010/mcp \
+  --bearer-token-env-var VIKUNJA_MCP_BEARER
+```
+
+Check that Codex has the server registered:
+
+```bash
+codex mcp list
+codex mcp get vikunja
+```
+
+## Equivalent Config File Shape
+
+If you manage Codex through `~/.codex/config.toml`, the same server entry looks like:
 
 ```toml
 [mcp_servers.vikunja]
-url = "http://YOUR_SERVER_IP_OR_HOSTNAME:8080/mcp"
+url = "http://TRUENAS_IP_OR_HOSTNAME:4010/mcp"
 bearer_token_env_var = "VIKUNJA_MCP_BEARER"
-required = true
-startup_timeout_sec = 20
-tool_timeout_sec = 60
 ```
 
-This is not a final production example yet. It is the intended direction for the project.
+## Fresh-Session Validation
 
-## Expected environment variable
+From a fresh Codex session, the first practical checks should be:
 
-The client should provide a bearer token for the MCP bridge, for example:
+1. list projects and confirm `Stonegate Descent` appears
+2. list views for that project
+3. list buckets for the working kanban view
+4. retrieve the `BOARD RULES` task
+5. create a disposable task
+6. update it
+7. add a label
 
-- `VIKUNJA_MCP_BEARER`
+If those pass, the LAN MCP path is working end to end:
 
-The bridge itself should then use its own internal Vikunja API token.
+- Codex to the bridge over HTTP
+- bridge auth on `/mcp`
+- bridge to Vikunja over the REST API
 
-## Migration intent
+## Local Override
 
-This project is meant to support a migration from a local STDIO-based Vikunja MCP setup to a persistent HTTP service reachable on the local network.
+For local-only validation instead of TrueNAS, the same command works with `127.0.0.1`:
 
-The desired result is:
+```bash
+codex mcp add vikunja-local \
+  --url http://127.0.0.1:4010/mcp \
+  --bearer-token-env-var VIKUNJA_MCP_BEARER
+```
 
-- less cold-start friction
-- more predictable repeated operations
-- easier reuse across machines
-- a cleaner home-lab deployment story
-
-## Validation expectation
-
-Once the bridge exists, a fresh Codex session should be able to:
-
-- list Vikunja projects
-- locate a target project
-- read task details
-- create and update tasks
-- verify final state after write operations
-
-without depending on a local per-session MCP process.
-
-## Non-goal
-
-This document is not yet a full setup guide.
-It only records the intended configuration shape and client-facing expectations.
+That flow is documented in `docs/local-testing.md`.

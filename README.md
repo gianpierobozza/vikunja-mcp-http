@@ -4,7 +4,31 @@ Self-hostable HTTP MCP bridge for Vikunja, designed for Codex and easy deploymen
 
 ## Status
 
-Early planning and bootstrap phase.
+Core implementation is in the repo now:
+
+- TypeScript + Express runtime
+- official MCP Streamable HTTP server on `/mcp`
+- Vikunja client and the first useful tool set
+- Docker packaging and `.env.example`
+- Codex, local testing, release, and TrueNAS docs
+
+Local development is pinned to Node.js 24.x.
+Use `nvm install` and `nvm use` with the repo's `.nvmrc`.
+
+Verified in this repo:
+
+- `npm run typecheck`
+- `npm run build`
+- `npm run test`
+- Docker image build
+- packaged smoke checks for `/healthz` and `/mcp`
+
+Still pending in a real environment:
+
+- live validation against a real Vikunja instance
+- a real GHCR publish and pull
+- a real TrueNAS deployment
+- broader integration and live-environment coverage
 
 The goal of this project is to provide a stable HTTP MCP service that sits between AI coding tools and a self-hosted Vikunja instance.
 
@@ -27,19 +51,34 @@ A local STDIO MCP server is fast to validate, but repeated real usage can become
 
 This project aims to solve that by exposing Vikunja through a persistent HTTP MCP service.
 
-## Planned features
+## Current v1 surface
 
-Initial scope:
+Implemented now:
 
 - remote HTTP MCP endpoint for Vikunja
+- `projects_list`
+- `tasks_list`
+- `task_get`
+- `task_create`
+- `task_update`
+- `labels_list`
+- `task_add_label`
+- `views_list`
+- `buckets_list`
 - read projects, tasks, views, and buckets
 - create and update tasks
 - add labels to tasks
 - verify final state after write operations
 - health endpoint
+- inbound bearer auth on `/mcp`
+
+Packaged in-repo:
+
 - Docker image
-- easy TrueNAS deployment
-- Codex configuration examples
+- `.env.example`
+- manual GHCR publishing instructions
+- TrueNAS deployment guide
+- Codex configuration guide
 
 ## Not in the first version
 
@@ -55,8 +94,14 @@ See:
 
 - `docs/architecture.md`
 - `docs/codex-config.md`
+- `docs/implementation-blueprint.md`
+- `docs/local-testing.md`
+- `docs/release.md`
 - `docs/roadmap.md`
 - `docs/truenas-install.md`
+
+The documents under `docs/` are the canonical project references.
+Temporary handoff notes or imported planning artifacts should be treated as working input until they are folded into those docs.
 
 ## License
 
