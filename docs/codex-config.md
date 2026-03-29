@@ -68,6 +68,10 @@ If those pass, the LAN MCP path is working end to end:
 - bridge auth on `/mcp`
 - bridge to Vikunja over the REST API
 
+Known quirk:
+
+- `buckets_list` may return bucket count-style metadata from Vikunja as `0` even when `tasks_list` for the same kanban view shows tasks present in those buckets. For actual board occupancy, prefer `tasks_list`.
+
 ## Local Override
 
 For local-only validation instead of TrueNAS, the same command works with `127.0.0.1`:

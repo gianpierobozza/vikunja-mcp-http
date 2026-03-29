@@ -66,6 +66,15 @@ The implemented initial capability set is:
 
 This is intentionally smaller than full Vikunja API coverage.
 
+## Known API quirk
+
+In live testing, `buckets_list` has been reliable for bucket identity, title, limits, and ordering, but bucket count-style metadata from Vikunja may still appear as `0` even when tasks are visibly present in those buckets through the kanban task view.
+
+For actual task placement within a kanban board:
+
+- treat `tasks_list` for the target view as the authoritative source
+- treat `buckets_list` as bucket metadata rather than occupancy truth
+
 ## Write verification rule
 
 Every write-capable operation verifies the final state before reporting success.
@@ -135,10 +144,13 @@ The repository has been validated through:
 - `npm run test`
 - in-memory MCP checks during implementation
 - Docker image build and packaged smoke checks
+- real GHCR publication
+- real TrueNAS deployment
+- live `/healthz` validation against a real Vikunja instance
+- live `/mcp` auth validation over the LAN
+- fresh Codex read validation against the `Stonegate Descent` project
 
 What is still external to the repo:
 
-- a live Vikunja-backed validation pass
-- a real GHCR publish and pull
-- a real TrueNAS deployment
-- broader integration and live-environment coverage
+- broader write-path validation from fresh Codex sessions
+- more live-environment usage coverage

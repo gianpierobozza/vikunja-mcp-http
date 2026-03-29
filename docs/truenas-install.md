@@ -116,3 +116,17 @@ The matching Codex setup flow is documented in `docs/codex-config.md`.
 - do not put it directly on the public internet
 - there is no persistent storage requirement for the bridge itself
 - if the image is private in GHCR, TrueNAS must be able to authenticate before deployment
+
+## Notes From Live Validation
+
+The deployment shape in this document has now been validated with a real public GHCR image and a real TrueNAS deployment.
+
+Live checks confirmed:
+
+- `/healthz` returned `200` against a real Vikunja instance
+- `/mcp` returned `401` when called without the configured bearer token
+- a fresh Codex session could list the `Stonegate Descent` project and read its kanban tasks through the deployed bridge
+
+Known quirk:
+
+- `buckets_list` may surface bucket count-style metadata from Vikunja as `0` even when `tasks_list` for the same kanban view shows tasks inside those buckets. For occupancy, prefer `tasks_list`.
