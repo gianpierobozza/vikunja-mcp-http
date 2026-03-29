@@ -235,7 +235,7 @@ describe("additional MCP tool coverage", () => {
       });
 
       expect(getErrorText(result)).toContain(
-        'Error in task_create: task_create verification failed: field "title" did not match the final task state.',
+        'Error in task_create: task_create verification failed: field "title" did not match the final state.',
       );
     });
   });
@@ -356,7 +356,7 @@ describe("additional MCP tool coverage", () => {
       });
 
       expect(getErrorText(result)).toContain(
-        'Error in task_update: task_update verification failed: field "title" did not match the final task state.',
+        'Error in task_update: task_update verification failed: field "title" did not match the final state.',
       );
     });
   });

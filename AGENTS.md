@@ -2,7 +2,7 @@
 
 ## Project stage
 
-This repository is in the implementation hardening and deployment-readiness phase.
+This repository is in the implementation hardening, deployment-readiness, and expanded core-work API validation phase.
 
 Core runtime code, packaging artifacts, and deployment docs already exist.
 Default to refining the current implementation and validating it in real environments instead of planning from scratch.
@@ -23,17 +23,20 @@ The intended usage is:
 Priority order:
 
 1. validate the bridge against a real Vikunja instance and real LAN usage
-2. expand automated test coverage beyond the current config, auth, client, and tool tests
-3. keep docs, runtime behavior, and packaging aligned
-4. improve reliability and error clarity without widening scope
-5. only then consider expanding the tool surface
+2. validate the expanded core work-management tool surface in real workflows
+3. expand automated test coverage alongside any new behavior
+4. keep docs, runtime behavior, and packaging aligned
+5. improve reliability and error clarity without widening into non-core API domains
+
+Only after that should the project consider out-of-scope areas such as attachments, sharing, auth flows, or migration endpoints.
 
 ## Guardrails
 
 Unless explicitly requested:
 
 - do not replace the current TypeScript, Express, or official MCP SDK stack
-- do not broaden the public tool surface beyond the documented v1 tools
+- do not broaden the public tool surface beyond the documented core work API without an explicit request
+- do not add a generic passthrough tool in place of the explicit MCP tools
 - do not add public internet exposure, OAuth, or broad destructive delete flows
 - do not add persistent services such as databases, queues, or caches
 - do not invent endpoints or features not grounded in the docs
@@ -62,6 +65,7 @@ The current implementation should continue to follow these rules:
 - prefer a thin bridge over an overengineered platform
 - verify final state after write operations
 - favor idempotent behavior when practical
+- require `confirm=true` for selective destructive delete tools
 - keep the service easy to self-host and reason about
 
 ## Testing rule

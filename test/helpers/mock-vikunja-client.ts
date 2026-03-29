@@ -25,6 +25,19 @@ export function createMockVikunjaClient(
       items: [],
       pagination: emptyPagination,
     }),
+    getProject: vi.fn().mockResolvedValue({
+      id: 1,
+      title: "Example project",
+    }),
+    createProject: vi.fn().mockResolvedValue({
+      id: 1,
+      title: "Example project",
+    }),
+    updateProject: vi.fn().mockResolvedValue({
+      id: 1,
+      title: "Example project",
+    }),
+    deleteProject: vi.fn().mockResolvedValue({}),
     listTasks: vi.fn().mockResolvedValue({
       items: [],
       pagination: emptyPagination,
@@ -41,17 +54,86 @@ export function createMockVikunjaClient(
       id: 1,
       title: "Example task",
     }),
+    deleteTask: vi.fn().mockResolvedValue({}),
+    moveTaskToBucket: vi.fn().mockResolvedValue({
+      task_id: 1,
+      bucket_id: 1,
+    }),
+    updateTaskPosition: vi.fn().mockResolvedValue({}),
     listLabels: vi.fn().mockResolvedValue({
       items: [],
       pagination: emptyPagination,
     }),
+    getLabel: vi.fn().mockResolvedValue({
+      id: 1,
+      title: "Example label",
+    }),
+    createLabel: vi.fn().mockResolvedValue({
+      id: 1,
+      title: "Example label",
+    }),
+    updateLabel: vi.fn().mockResolvedValue({
+      id: 1,
+      title: "Example label",
+    }),
+    deleteLabel: vi.fn().mockResolvedValue({}),
     listTaskLabels: vi.fn().mockResolvedValue({
       items: [],
       pagination: emptyPagination,
     }),
     addLabelToTask: vi.fn().mockResolvedValue({}),
+    removeLabelFromTask: vi.fn().mockResolvedValue({}),
     listViews: vi.fn().mockResolvedValue([]),
+    getView: vi.fn().mockResolvedValue({
+      id: 1,
+      title: "Example view",
+      view_kind: "kanban",
+    }),
+    createView: vi.fn().mockResolvedValue({
+      id: 1,
+      title: "Example view",
+      view_kind: "kanban",
+    }),
+    updateView: vi.fn().mockResolvedValue({
+      id: 1,
+      title: "Example view",
+      view_kind: "kanban",
+    }),
+    deleteView: vi.fn().mockResolvedValue({}),
     listBuckets: vi.fn().mockResolvedValue([]),
+    createBucket: vi.fn().mockResolvedValue({
+      id: 1,
+      title: "Example bucket",
+    }),
+    updateBucket: vi.fn().mockResolvedValue({
+      id: 1,
+      title: "Example bucket",
+    }),
+    deleteBucket: vi.fn().mockResolvedValue({}),
+    searchUsers: vi.fn().mockResolvedValue([]),
+    listTaskAssignees: vi.fn().mockResolvedValue({
+      items: [],
+      pagination: emptyPagination,
+    }),
+    addAssigneeToTask: vi.fn().mockResolvedValue({}),
+    removeAssigneeFromTask: vi.fn().mockResolvedValue({}),
+    listTaskComments: vi.fn().mockResolvedValue([]),
+    getTaskComment: vi.fn().mockResolvedValue({
+      id: 1,
+      comment: "Example comment",
+    }),
+    createTaskComment: vi.fn().mockResolvedValue({
+      id: 1,
+      comment: "Example comment",
+    }),
+    updateTaskComment: vi.fn().mockResolvedValue({
+      id: 1,
+      comment: "Example comment",
+    }),
+    deleteTaskComment: vi.fn().mockResolvedValue({}),
+    listTaskRelations: vi.fn().mockResolvedValue([]),
+    createTaskRelation: vi.fn().mockResolvedValue({}),
+    deleteTaskRelation: vi.fn().mockResolvedValue({}),
   } as MockVikunjaClient;
 
   return Object.assign(client, overrides);

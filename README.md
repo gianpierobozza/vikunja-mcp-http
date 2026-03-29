@@ -8,7 +8,7 @@ Core implementation is in the repo now:
 
 - TypeScript + Express runtime
 - official MCP Streamable HTTP server on `/mcp`
-- Vikunja client and the first useful tool set
+- Vikunja client and a broad core work-management tool set
 - Docker packaging and `.env.example`
 - Codex, local testing, release, and TrueNAS docs
 
@@ -20,6 +20,7 @@ Verified in this repo:
 - `npm run typecheck`
 - `npm run build`
 - `npm run test`
+- `npm run test:coverage`
 - Docker image build
 - packaged smoke checks for `/healthz` and `/mcp`
 - real GHCR publication
@@ -35,7 +36,7 @@ Automation now configured in the repo:
 
 Still worth expanding in a real environment:
 
-- broader write-path validation from fresh Codex sessions
+- broader live write-path validation for the expanded Milestone 8 tool surface
 - more live-environment usage coverage
 - first live GitHub Actions publish run after the next merge to `main`
 
@@ -60,24 +61,22 @@ A local STDIO MCP server is fast to validate, but repeated real usage can become
 
 This project aims to solve that by exposing Vikunja through a persistent HTTP MCP service.
 
-## Current v1 surface
+## Current core work surface
 
 Implemented now:
 
 - remote HTTP MCP endpoint for Vikunja
-- `projects_list`
-- `tasks_list`
-- `task_get`
-- `task_create`
-- `task_update`
-- `labels_list`
-- `task_add_label`
-- `views_list`
-- `buckets_list`
-- read projects, tasks, views, and buckets
-- create and update tasks
-- add labels to tasks
+- project tools: `projects_list`, `project_get`, `project_create`, `project_update`, `project_delete`
+- task tools: `tasks_list`, `task_get`, `task_create`, `task_update`, `task_delete`, `task_move`
+- label tools: `labels_list`, `label_get`, `label_create`, `label_update`, `label_delete`, `task_labels_list`, `task_add_label`, `task_remove_label`
+- user and assignee tools: `users_search`, `task_assignees_list`, `task_assign_user`, `task_unassign_user`
+- comment tools: `task_comments_list`, `task_comment_get`, `task_comment_create`, `task_comment_update`, `task_comment_delete`
+- relation tools: `task_relations_list`, `task_relation_create`, `task_relation_delete`
+- view tools: `views_list`, `view_create`, `view_update`, `view_delete`
+- bucket tools: `buckets_list`, `bucket_create`, `bucket_update`, `bucket_delete`
 - verify final state after write operations
+- require `confirm=true` for destructive project, task, label, comment, view, and bucket deletes
+- favor idempotent `already_present`, `already_absent`, and `already_satisfied` results when no write is needed
 - health endpoint
 - inbound bearer auth on `/mcp`
 
@@ -93,12 +92,13 @@ Packaged in-repo:
 Known quirk:
 
 - `buckets_list` reflects bucket metadata from Vikunja, but bucket task counts may appear as `0` even when `tasks_list` for the kanban view shows tasks in those buckets. For actual bucket occupancy, treat `tasks_list` as the authoritative source.
+- `task_relations_list` is derived from the task's `related_tasks` state because the current Vikunja OpenAPI exposes relation create/delete operations but not a dedicated relation-list endpoint.
 
 ## Not in the first version
 
 - public internet exposure
 - OAuth
-- broad destructive delete operations
+- broad or generic destructive delete passthroughs
 - full coverage of every Vikunja API endpoint
 - official TrueNAS catalog publication on day one
 

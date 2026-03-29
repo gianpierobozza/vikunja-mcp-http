@@ -99,7 +99,7 @@ Set the bearer token in the client environment:
 export VIKUNJA_MCP_BEARER="${MCP_BEARER_TOKEN}"
 ```
 
-From a fresh Codex session, validate this sequence:
+From a fresh Codex session, validate this baseline sequence:
 
 1. list projects and confirm `Stonegate Descent` appears
 2. list views for the target project
@@ -110,6 +110,37 @@ From a fresh Codex session, validate this sequence:
 7. add a label to that task
 8. repeat the same label add and confirm the bridge reports `already_present: true`
 9. repeat the same task update payload and confirm the bridge reports `already_satisfied: true`
+
+## Expanded Core Work API Validation
+
+For the Milestone 8 surface, run a disposable end-to-end pass using clearly prefixed temporary names such as `Codex test - ...`.
+
+Suggested sequence:
+
+1. create a disposable project
+2. update that project metadata
+3. create a disposable view inside it
+4. update that view
+5. create a disposable bucket inside that view
+6. update that bucket limit or position
+7. create a disposable task
+8. move that task into the disposable bucket
+9. create a disposable label
+10. add the label to the task, then remove it again
+11. search for a visible user, assign them to the task, then unassign them
+12. create a comment on the task, update it, then delete it
+13. create a relation from the task to another disposable or known-safe task, then delete it
+14. delete the disposable task with `confirm=true`
+15. delete the disposable bucket with `confirm=true`
+16. delete the disposable view with `confirm=true`
+17. delete the disposable label with `confirm=true`
+18. delete the disposable project with `confirm=true`
+
+Notes:
+
+- `task_move` prioritizes verified bucket placement; position is best-effort unless the final task state matches exactly
+- `task_relations_list` is derived from the task's `related_tasks` state because the current Vikunja OpenAPI does not expose a dedicated relation-list endpoint
+- if user assignment is not available in your Vikunja setup, skip the assignee steps and note the external limitation
 
 When you are done with the local entry, you can remove it with:
 
@@ -136,10 +167,11 @@ Validate these negative cases too:
 
 - The codebase has been validated in-process and through in-memory MCP client/server checks.
 - `npm run typecheck` and `npm run build` pass in this repo.
-- `npm run test` now covers config parsing, HTTP/auth behavior, tool verification logic, and Vikunja client normalization.
+- `npm run test` and `npm run test:coverage` now cover config parsing, HTTP/auth behavior, the expanded core work tool surface, and Vikunja client normalization.
 - the Docker image builds successfully, and a packaged smoke test confirmed `/healthz` and `/mcp` behavior inside the container.
 - a real GHCR image has now been published and pulled for deployment.
 - the bridge has now been deployed successfully on TrueNAS and is reachable over the LAN.
 - live validation confirmed `/healthz` returns `200` against a real Vikunja instance and `/mcp` returns `401` when called without the bearer token.
 - a fresh Codex session has now listed the `Stonegate Descent` project, its views, and its kanban tasks through the deployed bridge.
+- the broader Milestone 8 create/update/delete and association flows are implemented and unit-tested, but the full expanded live write-path checklist above is still the main remaining external validation step.
 - known quirk: `buckets_list` may show bucket count-style fields from Vikunja as `0` even when `tasks_list` for the same kanban view shows tasks present in those buckets. Use `tasks_list` as the authoritative source for occupancy.

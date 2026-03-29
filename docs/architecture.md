@@ -50,21 +50,20 @@ The service is:
 
 It is not trying to become a generic Vikunja platform.
 
-## Current v1 tool scope
+## Current core work tool scope
 
-The implemented initial capability set is:
+The implemented capability set is now:
 
-- `projects_list`
-- `tasks_list`
-- `task_get`
-- `task_create`
-- `task_update`
-- `labels_list`
-- `task_add_label`
-- `views_list`
-- `buckets_list`
+- project tools: `projects_list`, `project_get`, `project_create`, `project_update`, `project_delete`
+- task tools: `tasks_list`, `task_get`, `task_create`, `task_update`, `task_delete`, `task_move`
+- label tools: `labels_list`, `label_get`, `label_create`, `label_update`, `label_delete`, `task_labels_list`, `task_add_label`, `task_remove_label`
+- user and assignee tools: `users_search`, `task_assignees_list`, `task_assign_user`, `task_unassign_user`
+- comment tools: `task_comments_list`, `task_comment_get`, `task_comment_create`, `task_comment_update`, `task_comment_delete`
+- relation tools: `task_relations_list`, `task_relation_create`, `task_relation_delete`
+- view tools: `views_list`, `view_create`, `view_update`, `view_delete`
+- bucket tools: `buckets_list`, `bucket_create`, `bucket_update`, `bucket_delete`
 
-This is intentionally smaller than full Vikunja API coverage.
+This is intentionally broader than the original v1 baseline, but it is still smaller than full Vikunja API coverage.
 
 ## Known API quirk
 
@@ -75,6 +74,11 @@ For actual task placement within a kanban board:
 - treat `tasks_list` for the target view as the authoritative source
 - treat `buckets_list` as bucket metadata rather than occupancy truth
 
+For task relations:
+
+- `task_relations_list` is derived from the task's `related_tasks` state
+- the current Vikunja OpenAPI exposes relation create/delete endpoints but not a dedicated GET relation-list endpoint
+
 ## Write verification rule
 
 Every write-capable operation verifies the final state before reporting success.
@@ -84,6 +88,7 @@ Examples:
 - after creating a task, read it back and return the resolved final object
 - after updating a task, read it back and confirm the changed fields
 - after applying a label, verify the label is present
+- after deleting a project, task, label, comment, view, or bucket, verify absence before returning success
 
 This is a core product behavior, not an optional detail.
 
@@ -95,6 +100,20 @@ Examples:
 
 - if a task already has the requested label, return that state clearly
 - if a task update payload is already satisfied, return that state instead of retrying blindly
+- if a relation, label, or assignee is already absent, return that state instead of failing
+
+## Delete safety rule
+
+Selective destructive tools now exist, but they all require `confirm=true`.
+
+This applies to:
+
+- `project_delete`
+- `task_delete`
+- `label_delete`
+- `task_comment_delete`
+- `view_delete`
+- `bucket_delete`
 
 ## Security model
 
@@ -143,6 +162,7 @@ The repository has been validated through:
 - `npm run typecheck`
 - `npm run build`
 - `npm run test`
+- `npm run test:coverage`
 - in-memory MCP checks during implementation
 - Docker image build and packaged smoke checks
 - real GHCR publication
@@ -154,5 +174,5 @@ The repository has been validated through:
 What is still external to the repo:
 
 - first live GitHub Actions publish run after the next merge to `main`
-- broader write-path validation from fresh Codex sessions
+- broader live write-path validation of the expanded core work tool surface
 - more live-environment usage coverage
