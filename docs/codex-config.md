@@ -60,7 +60,12 @@ From a fresh Codex session, the first practical checks should be:
 4. retrieve the `BOARD RULES` task
 5. create a disposable task
 6. update it
-7. add a label
+7. move it into a disposable or known-safe bucket
+8. add and remove a label
+9. assign and unassign a visible user if available
+10. create, update, and delete a disposable comment
+11. create and delete a disposable relation
+12. delete the disposable task with `confirm=true`
 
 If those pass, the LAN MCP path is working end to end:
 
@@ -71,6 +76,7 @@ If those pass, the LAN MCP path is working end to end:
 Known quirk:
 
 - `buckets_list` may return bucket count-style metadata from Vikunja as `0` even when `tasks_list` for the same kanban view shows tasks present in those buckets. For actual board occupancy, prefer `tasks_list`.
+- `task_relations_list` is derived from the task's `related_tasks` state because the current Vikunja OpenAPI does not expose a dedicated relation-list endpoint.
 
 ## Local Override
 

@@ -160,6 +160,7 @@ Live checks confirmed:
 - `/healthz` returned `200` against a real Vikunja instance
 - `/mcp` returned `401` when called without the configured bearer token
 - a fresh Codex session could list the `Stonegate Descent` project and read its kanban tasks through the deployed bridge
+- the expanded Milestone 8 core work API surface is implemented and covered by the repo test suite, but the full live write/delete checklist from `docs/local-testing.md` is still the recommended next operational validation step
 
 Known quirk:
 

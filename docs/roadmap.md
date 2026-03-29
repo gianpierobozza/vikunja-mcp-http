@@ -2,12 +2,12 @@
 
 ## Current phase
 
-Post-Phase-7 live deployment follow-through and operational polish.
+Post-Milestone-8 live validation and operational polish.
 
 The implementation blueprint has been applied, the runtime exists, and packaging artifacts are in the repo.
 The remaining work is:
 
-- expand live write-path validation from fresh Codex sessions
+- run the expanded Milestone 8 live write-path validation from fresh Codex sessions
 - continue reliability and usability polish from real usage
 - keep documentation aligned with proven deployment behavior
 
@@ -128,7 +128,7 @@ Success criteria:
 - Codex can connect to it over HTTP
 - read operations behave consistently in live deployment
 
-## Milestone 7 — Operational polish (in progress)
+## Milestone 7 — Operational polish (completed)
 
 Goal:
 Improve reliability and usability after real usage begins.
@@ -143,11 +143,46 @@ Possible follow-ups:
 - better documentation
 - additional safe tool coverage
 
+## Milestone 8 — Core work API expansion (completed in repo)
+
+Goal:
+Broaden the bridge from the original v1 tool set into a practical core work-management surface while keeping explicit MCP tools and selective delete safety.
+
+Implemented scope:
+
+- project CRUD
+- view CRUD
+- bucket CRUD
+- task delete and task move
+- task label list and remove
+- user search and task assignee add/remove/list
+- label CRUD
+- task comment CRUD
+- task relation list/create/delete
+- `confirm=true` protection on destructive delete tools
+- verification and idempotency across the new write flows
+
+Success criteria achieved in-repo:
+
+- expanded client methods implemented against official Vikunja endpoints
+- new MCP tools registered in the same explicit style as the original v1 surface
+- automated coverage expanded alongside the new code
+- repo-wide coverage thresholds still pass
+
+Remaining external validation:
+
+- execute the full expanded live checklist from `docs/local-testing.md`
+- confirm the new write/delete flows behave as expected from fresh Codex sessions against the deployed bridge
+
 ## Later-phase possibilities
 
 Not current priorities, but possible future directions:
 
-- broader Vikunja endpoint coverage
+- file uploads and attachments
+- saved filters
+- sharing, teams, memberships, and subscriptions
+- auth/login/OpenID/session flows
+- migration or import/export endpoints
 - better admin/config UX
 - reverse proxy examples
 - TLS examples

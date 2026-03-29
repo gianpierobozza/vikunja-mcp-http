@@ -6,9 +6,12 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { SERVICE_NAME, SERVICE_VERSION } from "./config.js";
 import { logError, logInfo, logWarn } from "./logger.js";
 import { registerBucketTools } from "./tools/buckets.js";
+import { registerCommentTools } from "./tools/comments.js";
 import { registerLabelTools } from "./tools/labels.js";
 import { registerProjectTools } from "./tools/projects.js";
+import { registerRelationTools } from "./tools/relations.js";
 import { registerTaskTools } from "./tools/tasks.js";
+import { registerUserTools } from "./tools/users.js";
 import { registerViewTools } from "./tools/views.js";
 import type { VikunjaClientApi } from "./vikunja-client.js";
 
@@ -57,6 +60,9 @@ export function createMcpServer(client: VikunjaClientApi): McpServer {
   registerProjectTools(server, client);
   registerTaskTools(server, client);
   registerLabelTools(server, client);
+  registerUserTools(server, client);
+  registerCommentTools(server, client);
+  registerRelationTools(server, client);
   registerViewTools(server, client);
   registerBucketTools(server, client);
 
