@@ -87,6 +87,8 @@ describe("additional MCP tool coverage", () => {
 
   it("returns a tool error when projects_list fails", async () => {
     await withServer(async (server, client) => {
+      vi.spyOn(Date, "now").mockReturnValueOnce(1000).mockReturnValueOnce(1005);
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
       client.listProjects.mockRejectedValueOnce(
         new VikunjaClientError("Invalid Vikunja token.", { statusCode: 401 }),
       );
@@ -94,6 +96,9 @@ describe("additional MCP tool coverage", () => {
       const result = await callTool(server, "projects_list", {});
 
       expect(getErrorText(result)).toBe("Error in projects_list: Invalid Vikunja token.");
+      expect(warnSpy).toHaveBeenCalledWith(
+        'WARN mcp tool name=projects_list outcome=error duration_ms=5 message="Error in projects_list: Invalid Vikunja token."',
+      );
     });
   });
 

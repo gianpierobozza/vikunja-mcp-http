@@ -100,6 +100,36 @@ Expected result:
 - not a connection failure
 - not an HTML page
 
+## Updating an Existing TrueNAS Install
+
+When a new image is published from a merge to `main`, update the existing app instead of reinstalling it.
+
+Recommended flow:
+
+1. open the GitHub `Actions` tab for this repository
+2. confirm `Publish GHCR Image` passed for the merge commit
+3. note the new immutable image tag, for example `ghcr.io/YOUR_GITHUB_NAMESPACE/vikunja-mcp-http:sha-abc1234`
+4. in TrueNAS, open `Apps`
+5. open the installed `vikunja-mcp-http` app
+6. use the app edit flow and replace the old image tag with the new `sha-...` tag
+7. save the update and wait for TrueNAS to redeploy the app
+
+Then rerun the LAN checks:
+
+```bash
+curl http://TRUENAS_IP_OR_HOSTNAME:4010/healthz
+curl -i -X POST http://TRUENAS_IP_OR_HOSTNAME:4010/mcp \
+  -H 'content-type: application/json' \
+  -d '{}'
+```
+
+Expected result:
+
+- `/healthz` still returns `200` when Vikunja is reachable
+- `/mcp` still returns `401` without the configured bearer token
+
+Rollback is the same process in reverse: edit the app again and switch the image back to the previous `sha-...` tag.
+
 ## Codex LAN Endpoint
 
 After the app is up, point Codex at:
@@ -118,6 +148,8 @@ The matching Codex setup flow is documented in `docs/codex-config.md`.
 - do not put it directly on the public internet
 - there is no persistent storage requirement for the bridge itself
 - if the image is private in GHCR, TrueNAS must be able to authenticate before deployment
+- runtime logs are written to container stdout/stderr, so the TrueNAS app logs are the primary place to inspect startup, `/healthz`, auth failures, `/mcp` request summaries, tool activity, and Vikunja upstream failures
+- log lines are intentionally short and single-line, and they do not include bearer tokens, API tokens, auth headers, raw request bodies, or full response payloads
 
 ## Notes From Live Validation
 

@@ -2,7 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
 import type { VikunjaClientApi } from "../vikunja-client.js";
-import { asJsonText, toolErrorResult } from "./shared.js";
+import { asJsonText, asTextContent, toolErrorResult, withToolLogging } from "./shared.js";
 
 export function registerProjectTools(server: McpServer, client: VikunjaClientApi): void {
   server.registerTool(
@@ -20,7 +20,7 @@ export function registerProjectTools(server: McpServer, client: VikunjaClientApi
         search: z.string().trim().min(1).optional().describe("Search projects by title."),
       },
     },
-    async ({ page, per_page, search }) => {
+    withToolLogging("projects_list", async ({ page, per_page, search }) => {
       try {
         const result = await client.listProjects({
           page,
@@ -29,17 +29,12 @@ export function registerProjectTools(server: McpServer, client: VikunjaClientApi
         });
 
         return {
-          content: [
-            {
-              type: "text",
-              text: asJsonText(result),
-            },
-          ],
+          content: asTextContent(asJsonText(result)),
           structuredContent: result,
         };
       } catch (error) {
         return toolErrorResult("projects_list", error);
       }
-    },
+    }),
   );
 }

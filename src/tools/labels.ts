@@ -2,7 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
 import type { VikunjaClientApi } from "../vikunja-client.js";
-import { asJsonText, toolErrorResult } from "./shared.js";
+import { asJsonText, asTextContent, toolErrorResult, withToolLogging } from "./shared.js";
 
 const verificationPageSize = 1000;
 
@@ -22,7 +22,7 @@ export function registerLabelTools(server: McpServer, client: VikunjaClientApi):
         search: z.string().trim().min(1).optional().describe("Search labels by title."),
       },
     },
-    async ({ page, per_page, search }) => {
+    withToolLogging("labels_list", async ({ page, per_page, search }) => {
       try {
         const result = await client.listLabels({
           page,
@@ -31,13 +31,13 @@ export function registerLabelTools(server: McpServer, client: VikunjaClientApi):
         });
 
         return {
-          content: [{ type: "text", text: asJsonText(result) }],
+          content: asTextContent(asJsonText(result)),
           structuredContent: result,
         };
       } catch (error) {
         return toolErrorResult("labels_list", error);
       }
-    },
+    }),
   );
 
   server.registerTool(
@@ -49,7 +49,7 @@ export function registerLabelTools(server: McpServer, client: VikunjaClientApi):
         label_id: z.number().int().positive().describe("Label id."),
       },
     },
-    async ({ task_id, label_id }) => {
+    withToolLogging("task_add_label", async ({ task_id, label_id }) => {
       try {
         const currentLabels = await client.listTaskLabels(task_id, {
           perPage: verificationPageSize,
@@ -65,7 +65,7 @@ export function registerLabelTools(server: McpServer, client: VikunjaClientApi):
           };
 
           return {
-            content: [{ type: "text", text: asJsonText(result) }],
+            content: asTextContent(asJsonText(result)),
             structuredContent: result,
           };
         }
@@ -89,12 +89,12 @@ export function registerLabelTools(server: McpServer, client: VikunjaClientApi):
         };
 
         return {
-          content: [{ type: "text", text: asJsonText(result) }],
+          content: asTextContent(asJsonText(result)),
           structuredContent: result,
         };
       } catch (error) {
         return toolErrorResult("task_add_label", error);
       }
-    },
+    }),
   );
 }

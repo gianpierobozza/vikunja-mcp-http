@@ -2,7 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
 import type { CreateTaskInput, VikunjaClientApi, VikunjaTask } from "../vikunja-client.js";
-import { toolErrorResult, asJsonText } from "./shared.js";
+import { toolErrorResult, asJsonText, asTextContent, withToolLogging } from "./shared.js";
 
 const optionalTaskMutationSchema = {
   description: z.string().optional().describe("Task description."),
@@ -166,7 +166,7 @@ export function registerTaskTools(server: McpServer, client: VikunjaClientApi): 
         order_by: z.string().trim().min(1).optional().describe("Sort order."),
       },
     },
-    async ({
+    withToolLogging("tasks_list", async ({
       project_id,
       view_id,
       page,
@@ -191,13 +191,13 @@ export function registerTaskTools(server: McpServer, client: VikunjaClientApi): 
         });
 
         return {
-          content: [{ type: "text", text: asJsonText(result) }],
+          content: asTextContent(asJsonText(result)),
           structuredContent: result,
         };
       } catch (error) {
         return toolErrorResult("tasks_list", error);
       }
-    },
+    }),
   );
 
   server.registerTool(
@@ -213,19 +213,19 @@ export function registerTaskTools(server: McpServer, client: VikunjaClientApi): 
           .describe("Optional related data to expand in the task response."),
       },
     },
-    async ({ task_id, expand }) => {
+    withToolLogging("task_get", async ({ task_id, expand }) => {
       try {
         const task = await client.getTask(task_id, { expand });
         const result = { task };
 
         return {
-          content: [{ type: "text", text: asJsonText(result) }],
+          content: asTextContent(asJsonText(result)),
           structuredContent: result,
         };
       } catch (error) {
         return toolErrorResult("task_get", error);
       }
-    },
+    }),
   );
 
   server.registerTool(
@@ -238,7 +238,7 @@ export function registerTaskTools(server: McpServer, client: VikunjaClientApi): 
         ...optionalTaskMutationSchema,
       },
     },
-    async (args) => {
+    withToolLogging("task_create", async (args) => {
       try {
         const { project_id } = args;
         const patch = buildTaskPatch(args);
@@ -271,13 +271,13 @@ export function registerTaskTools(server: McpServer, client: VikunjaClientApi): 
         };
 
         return {
-          content: [{ type: "text", text: asJsonText(result) }],
+          content: asTextContent(asJsonText(result)),
           structuredContent: result,
         };
       } catch (error) {
         return toolErrorResult("task_create", error);
       }
-    },
+    }),
   );
 
   server.registerTool(
@@ -289,7 +289,7 @@ export function registerTaskTools(server: McpServer, client: VikunjaClientApi): 
         ...taskMutationSchema,
       },
     },
-    async (args) => {
+    withToolLogging("task_update", async (args) => {
       try {
         const { task_id } = args;
         const patch = buildTaskPatch(args);
@@ -319,7 +319,7 @@ export function registerTaskTools(server: McpServer, client: VikunjaClientApi): 
           };
 
           return {
-            content: [{ type: "text", text: asJsonText(result) }],
+            content: asTextContent(asJsonText(result)),
             structuredContent: result,
           };
         }
@@ -342,12 +342,12 @@ export function registerTaskTools(server: McpServer, client: VikunjaClientApi): 
         };
 
         return {
-          content: [{ type: "text", text: asJsonText(result) }],
+          content: asTextContent(asJsonText(result)),
           structuredContent: result,
         };
       } catch (error) {
         return toolErrorResult("task_update", error);
       }
-    },
+    }),
   );
 }

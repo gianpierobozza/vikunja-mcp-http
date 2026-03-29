@@ -2,7 +2,7 @@ import express from "express";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { AppConfig } from "../src/config.js";
-import { createApp, startServer } from "../src/server.js";
+import { bootstrapServer, createApp, startServer } from "../src/server.js";
 import { createMockVikunjaClient } from "./helpers/mock-vikunja-client.js";
 
 type ExpressLayer = {
@@ -57,8 +57,14 @@ function getErrorHandler(app: ReturnType<typeof createApp>) {
   return layer.handle;
 }
 
-function createRequest(headers: Record<string, string> = {}) {
+function createRequest(
+  headers: Record<string, string> = {},
+  options: { method?: string; path?: string; originalUrl?: string } = {},
+) {
   return {
+    method: options.method ?? "POST",
+    path: options.path ?? "/mcp",
+    originalUrl: options.originalUrl ?? options.path ?? "/mcp",
     header: (name: string) => headers[name.toLowerCase()],
   };
 }
@@ -94,7 +100,9 @@ describe("createApp", () => {
     expect(getRouteHandlers(app, "/mcp", "post")).toHaveLength(2);
   });
 
-  it("returns health status 200 when Vikunja is reachable", async () => {
+  it("returns health status 200 when Vikunja is reachable and logs the result", async () => {
+    vi.spyOn(Date, "now").mockReturnValueOnce(1000).mockReturnValueOnce(1012);
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
     const client = createMockVikunjaClient({
       probe: vi.fn().mockResolvedValue({
         ok: true,
@@ -106,7 +114,7 @@ describe("createApp", () => {
     const [healthHandler] = getRouteHandlers(app, "/healthz", "get");
     const response = createResponse();
 
-    await healthHandler(createRequest(), response);
+    await healthHandler(createRequest({}, { method: "GET", path: "/healthz" }), response);
 
     expect(response.status).toHaveBeenCalledWith(200);
     expect(response.json).toHaveBeenCalledWith({
@@ -117,9 +125,14 @@ describe("createApp", () => {
       message: "Vikunja reachable.",
       vikunja_status_code: 200,
     });
+    expect(logSpy).toHaveBeenCalledWith(
+      "INFO healthz request method=GET path=/healthz status=200 vikunja_reachable=true vikunja_status=200 duration_ms=12",
+    );
   });
 
-  it("returns health status 503 when Vikunja is unreachable", async () => {
+  it("returns health status 503 when Vikunja is unreachable and logs the result", async () => {
+    vi.spyOn(Date, "now").mockReturnValueOnce(2000).mockReturnValueOnce(2017);
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     const client = createMockVikunjaClient({
       probe: vi.fn().mockResolvedValue({
         ok: false,
@@ -131,7 +144,7 @@ describe("createApp", () => {
     const [healthHandler] = getRouteHandlers(app, "/healthz", "get");
     const response = createResponse();
 
-    await healthHandler(createRequest(), response);
+    await healthHandler(createRequest({}, { method: "GET", path: "/healthz" }), response);
 
     expect(response.status).toHaveBeenCalledWith(503);
     expect(response.json).toHaveBeenCalledWith({
@@ -142,6 +155,9 @@ describe("createApp", () => {
       message: "Invalid Vikunja token.",
       vikunja_status_code: 401,
     });
+    expect(warnSpy).toHaveBeenCalledWith(
+      'WARN healthz request method=GET path=/healthz status=503 vikunja_reachable=false vikunja_status=401 duration_ms=17',
+    );
   });
 
   it("rejects unauthenticated MCP requests in the auth middleware", () => {
@@ -176,17 +192,21 @@ describe("createApp", () => {
     expect(response.status).not.toHaveBeenCalled();
   });
 
-  it("returns 405 on GET and DELETE /mcp", async () => {
+  it("returns 405 on GET and DELETE /mcp and logs both", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     const app = createApp(createConfig(), {
       vikunjaClient: createMockVikunjaClient(),
     });
     const [getHandler] = getRouteHandlers(app, "/mcp", "get");
     const [deleteHandler] = getRouteHandlers(app, "/mcp", "delete");
 
-    for (const handler of [getHandler, deleteHandler]) {
+    for (const [index, handler] of [getHandler, deleteHandler].entries()) {
       const response = createResponse();
 
-      await handler(createRequest(), response);
+      await handler(
+        createRequest({}, { method: index === 0 ? "GET" : "DELETE" }),
+        response,
+      );
 
       expect(response.status).toHaveBeenCalledWith(405);
       expect(response.set).toHaveBeenCalledWith("Allow", "POST");
@@ -199,9 +219,16 @@ describe("createApp", () => {
         id: null,
       });
     }
+
+    expect(warnSpy).toHaveBeenNthCalledWith(1, "WARN mcp method_not_allowed method=GET path=/mcp status=405");
+    expect(warnSpy).toHaveBeenNthCalledWith(
+      2,
+      "WARN mcp method_not_allowed method=DELETE path=/mcp status=405",
+    );
   });
 
-  it("returns JSON 400 for invalid JSON parser errors", () => {
+  it("returns JSON 400 for invalid JSON parser errors and logs them", () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     const app = createApp(createConfig(), {
       vikunjaClient: createMockVikunjaClient(),
     });
@@ -215,9 +242,11 @@ describe("createApp", () => {
       error: "invalid_json",
       message: "Request body must be valid JSON.",
     });
+    expect(warnSpy).toHaveBeenCalledWith("WARN http invalid_json method=POST path=/mcp status=400");
   });
 
   it("returns JSON 400 for SyntaxError parser failures that include body-parser metadata", () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     const app = createApp(createConfig(), {
       vikunjaClient: createMockVikunjaClient(),
     });
@@ -235,9 +264,11 @@ describe("createApp", () => {
       error: "invalid_json",
       message: "Request body must be valid JSON.",
     });
+    expect(warnSpy).toHaveBeenCalledWith("WARN http invalid_json method=POST path=/mcp status=400");
   });
 
-  it("returns JSON 413 for oversized request bodies", () => {
+  it("returns JSON 413 for oversized request bodies and logs them", () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     const app = createApp(createConfig(), {
       vikunjaClient: createMockVikunjaClient(),
     });
@@ -251,9 +282,11 @@ describe("createApp", () => {
       error: "payload_too_large",
       message: "Request body is too large.",
     });
+    expect(warnSpy).toHaveBeenCalledWith("WARN http payload_too_large method=POST path=/mcp status=413");
   });
 
-  it("returns JSON 500 for generic Error instances", () => {
+  it("returns JSON 500 for generic Error instances and logs them", () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const app = createApp(createConfig(), {
       vikunjaClient: createMockVikunjaClient(),
     });
@@ -267,9 +300,13 @@ describe("createApp", () => {
       error: "internal_server_error",
       message: "boom",
     });
+    expect(errorSpy).toHaveBeenCalledWith(
+      "ERROR http internal_server_error method=POST path=/mcp status=500 message=boom",
+    );
   });
 
   it("does not misclassify unrelated SyntaxError instances as invalid JSON", () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const app = createApp(createConfig(), {
       vikunjaClient: createMockVikunjaClient(),
     });
@@ -283,9 +320,13 @@ describe("createApp", () => {
       error: "internal_server_error",
       message: "Unexpected identifier",
     });
+    expect(errorSpy).toHaveBeenCalledWith(
+      'ERROR http internal_server_error method=POST path=/mcp status=500 message="Unexpected identifier"',
+    );
   });
 
   it("returns a fallback message for non-Error failures", () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const app = createApp(createConfig(), {
       vikunjaClient: createMockVikunjaClient(),
     });
@@ -299,6 +340,9 @@ describe("createApp", () => {
       error: "internal_server_error",
       message: "Unexpected server error.",
     });
+    expect(errorSpy).toHaveBeenCalledWith(
+      'ERROR http internal_server_error method=POST path=/mcp status=500 message="Unexpected server error."',
+    );
   });
 });
 
@@ -316,7 +360,24 @@ describe("startServer", () => {
     const server = startServer(createConfig());
 
     expect(listenSpy).toHaveBeenCalledWith(4010, expect.any(Function));
-    expect(logSpy).toHaveBeenCalledWith("vikunja-mcp-http listening on port 4010");
+    expect(logSpy).toHaveBeenCalledWith("INFO server listening service=vikunja-mcp-http port=4010");
     expect(server).toBe(fakeServer);
+  });
+
+  it("logs and rethrows fatal startup failures", () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    expect(() =>
+      bootstrapServer(
+        () => {
+          throw new Error("bad config");
+        },
+        vi.fn(),
+      ),
+    ).toThrow("bad config");
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      'ERROR server startup_failed service=vikunja-mcp-http message="bad config"',
+    );
   });
 });

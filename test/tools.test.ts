@@ -80,6 +80,8 @@ describe("MCP tool behavior", () => {
 
   it("returns already_satisfied for no-op task updates", async () => {
     await withServer(async (server, client) => {
+      vi.spyOn(Date, "now").mockReturnValueOnce(1000).mockReturnValueOnce(1009);
+      const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
       client.getTask.mockResolvedValueOnce({
         id: 9,
         title: "BOARD RULES",
@@ -99,6 +101,9 @@ describe("MCP tool behavior", () => {
         verified: true,
         already_satisfied: true,
       });
+      expect(logSpy).toHaveBeenCalledWith(
+        "INFO mcp tool name=task_update outcome=ok status=already_satisfied duration_ms=9",
+      );
     });
   });
 
@@ -139,6 +144,8 @@ describe("MCP tool behavior", () => {
 
   it("returns already_present when adding a label that is already attached", async () => {
     await withServer(async (server, client) => {
+      vi.spyOn(Date, "now").mockReturnValueOnce(2000).mockReturnValueOnce(2007);
+      const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
       client.listTaskLabels.mockResolvedValueOnce({
         items: [{ id: 5, title: "game design" }],
         pagination: {
@@ -162,6 +169,9 @@ describe("MCP tool behavior", () => {
         already_present: true,
         labels: [{ id: 5, title: "game design" }],
       });
+      expect(logSpy).toHaveBeenCalledWith(
+        "INFO mcp tool name=task_add_label outcome=ok status=already_present duration_ms=7",
+      );
     });
   });
 

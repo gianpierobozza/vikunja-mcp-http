@@ -75,6 +75,7 @@ After the first merge to `main` with the new workflow in place:
 3. check the GHCR package page for fresh `latest` and `sha-<shortsha>` tags
 4. pull the new SHA tag locally
 5. run the image with the required environment and recheck `/healthz` and `/mcp`
+6. if TrueNAS is already running the bridge, edit the installed app and switch its image to the new `sha-<shortsha>` tag
 
 ## Manual Fallback Path
 

@@ -4,6 +4,9 @@ import { requireBearerAuth } from "../src/auth.js";
 
 function createRequest(authorization?: string) {
   return {
+    method: "POST",
+    path: "/mcp",
+    originalUrl: "/mcp",
     header: vi.fn().mockImplementation((name: string) =>
       name === "authorization" ? authorization : undefined,
     ),
@@ -44,6 +47,7 @@ describe("requireBearerAuth", () => {
 
   it("rejects requests without an authorization header", () => {
     const middleware = requireBearerAuth("bridge-token");
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     const response = createResponse();
 
     middleware(createRequest() as never, response as never, vi.fn());
@@ -53,6 +57,7 @@ describe("requireBearerAuth", () => {
       error: "unauthorized",
       message: "A valid bearer token is required for this endpoint.",
     });
+    expect(warnSpy).toHaveBeenCalledWith("WARN auth unauthorized method=POST path=/mcp");
   });
 
   it("rejects requests with the wrong auth scheme", () => {
@@ -73,13 +78,17 @@ describe("requireBearerAuth", () => {
     expect(response.status).toHaveBeenCalledWith(401);
   });
 
-  it("rejects requests with the wrong token even when lengths match", () => {
+  it("rejects requests with the wrong token even when lengths match without logging secrets", () => {
     const middleware = requireBearerAuth("bridge-token");
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     const response = createResponse();
 
     middleware(createRequest("Bearer wrongg-token") as never, response as never, vi.fn());
 
     expect(response.status).toHaveBeenCalledWith(401);
+    expect(warnSpy).toHaveBeenCalledWith("WARN auth unauthorized method=POST path=/mcp");
+    expect(warnSpy.mock.calls[0]?.[0]).not.toContain("wrongg-token");
+    expect(warnSpy.mock.calls[0]?.[0]).not.toContain("bridge-token");
   });
 
   it("rejects requests with the wrong token length", () => {

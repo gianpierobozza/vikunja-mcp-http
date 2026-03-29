@@ -2,7 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
 import type { VikunjaClientApi } from "../vikunja-client.js";
-import { asJsonText, toolErrorResult } from "./shared.js";
+import { asJsonText, asTextContent, toolErrorResult, withToolLogging } from "./shared.js";
 
 export function registerBucketTools(server: McpServer, client: VikunjaClientApi): void {
   server.registerTool(
@@ -14,19 +14,19 @@ export function registerBucketTools(server: McpServer, client: VikunjaClientApi)
         view_id: z.number().int().positive().describe("Project view id."),
       },
     },
-    async ({ project_id, view_id }) => {
+    withToolLogging("buckets_list", async ({ project_id, view_id }) => {
       try {
         const result = {
           items: await client.listBuckets(project_id, view_id),
         };
 
         return {
-          content: [{ type: "text", text: asJsonText(result) }],
+          content: asTextContent(asJsonText(result)),
           structuredContent: result,
         };
       } catch (error) {
         return toolErrorResult("buckets_list", error);
       }
-    },
+    }),
   );
 }
