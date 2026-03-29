@@ -2,29 +2,29 @@
 
 ## Purpose
 
-`vikunja-mcp-http` is meant to provide a persistent HTTP MCP service in front of a self-hosted Vikunja instance.
+`vikunja-mcp-http` provides a persistent HTTP MCP service in front of a self-hosted Vikunja instance.
 
 The core problem it solves is the friction of relying only on local STDIO MCP processes for repeated real usage.
 
-## Target architecture
+## Current architecture
 
-The intended flow is:
+The current flow is:
 
 Codex / MCP client → HTTP MCP service → Vikunja REST API
 
-This service should act as a thin and reliable bridge.
+The service is intentionally a thin and reliable bridge.
 
 ## Main responsibilities
 
-The service should:
+The service currently:
 
-- expose an MCP-compatible HTTP endpoint
-- authenticate incoming MCP clients
-- authenticate to Vikunja using an internal API token
-- perform controlled read and write operations against Vikunja
-- verify final state after write operations
-- return precise, useful results to the MCP client
-- expose a health endpoint for operational checks
+- exposes an MCP-compatible HTTP endpoint
+- authenticates incoming MCP clients
+- authenticates to Vikunja using an internal API token
+- performs controlled read and write operations against Vikunja
+- verifies final state after write operations
+- returns precise, useful results to the MCP client
+- exposes a health endpoint for operational checks
 
 ## Why HTTP instead of local STDIO
 
@@ -39,7 +39,7 @@ An HTTP service solves those issues better for a home-lab environment.
 
 ## Design principles
 
-The service should be:
+The service is:
 
 - narrow in scope
 - easy to self-host
@@ -48,81 +48,97 @@ The service should be:
 - explicit about state
 - simple to package and redeploy
 
-It should not try to become a generic Vikunja platform.
+It is not trying to become a generic Vikunja platform.
 
-## First-version tool scope
+## Current v1 tool scope
 
-The first useful version should focus on the operations needed for real board workflows.
+The implemented initial capability set is:
 
-Planned initial capability set:
-
-- list projects
-- list tasks
-- get a task
-- create a task
-- update a task
-- list labels
-- add a label to a task
-- list views
-- list buckets
+- `projects_list`
+- `tasks_list`
+- `task_get`
+- `task_create`
+- `task_update`
+- `labels_list`
+- `task_add_label`
+- `views_list`
+- `buckets_list`
 
 This is intentionally smaller than full Vikunja API coverage.
 
 ## Write verification rule
 
-Every write-capable operation should verify the final state before reporting success.
+Every write-capable operation verifies the final state before reporting success.
 
 Examples:
 
 - after creating a task, read it back and return the resolved final object
 - after updating a task, read it back and confirm the changed fields
 - after applying a label, verify the label is present
-- after moving a task, verify the resulting bucket or state
 
 This is a core product behavior, not an optional detail.
 
 ## Idempotent behavior
 
-Where practical, the service should prefer idempotent results over noisy retries.
+Where practical, the service prefers idempotent results over noisy retries.
 
 Examples:
 
 - if a task already has the requested label, return that state clearly
-- if a task is already in the requested bucket, report that instead of retrying blindly
+- if a task update payload is already satisfied, return that state instead of retrying blindly
 
 ## Security model
 
-The first version should use two distinct secrets:
+The current version uses two distinct secrets:
 
 - one bearer token for incoming MCP clients
 - one Vikunja API token used internally by the bridge
 
-These should not be the same secret.
+These are intentionally separate.
 
 The initial deployment target is LAN-only, not public internet exposure.
 
 ## Operational endpoints
 
-Planned endpoints:
+Current endpoints:
 
-- `/mcp` for the MCP HTTP transport
-- `/healthz` for service health checks
+- `POST /mcp` for the MCP Streamable HTTP transport
+- `GET /healthz` for service health checks
+- `GET /mcp` and `DELETE /mcp` return `405`
 
-The health endpoint should help determine:
+The health endpoint helps determine:
 
 - whether the service is up
 - whether required configuration is present
 - whether Vikunja is reachable
 
-## Technology direction
+## Technology stack
 
-The current intended stack is:
+The current implementation uses:
 
+- Node.js 24.x
 - TypeScript
+- Express 5
 - official MCP TypeScript SDK
-- HTTP server framework suitable for a simple stateless service
+- Zod for config validation
+- stateless Streamable HTTP transport
 - Docker packaging
-- GHCR image publishing
-- TrueNAS custom app deployment
+- manual GHCR release documentation
+- TrueNAS custom app deployment docs
 
-These are still implementation-phase decisions until the bootstrap is complete, but this is the current direction.
+## Current validation state
+
+The repository has been validated through:
+
+- `npm run typecheck`
+- `npm run build`
+- `npm run test`
+- in-memory MCP checks during implementation
+- Docker image build and packaged smoke checks
+
+What is still external to the repo:
+
+- a live Vikunja-backed validation pass
+- a real GHCR publish and pull
+- a real TrueNAS deployment
+- broader integration and live-environment coverage

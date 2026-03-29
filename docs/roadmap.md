@@ -2,11 +2,17 @@
 
 ## Current phase
 
-Planning and repository bootstrap.
+Post-Phase-7 validation and test coverage.
 
-The repo exists publicly, but implementation has not started yet.
+The implementation blueprint has been applied, the runtime exists, and packaging artifacts are in the repo.
+The remaining work is:
 
-## Milestone 1 — Bootstrap
+- run the bridge against a real Vikunja instance
+- publish a real image
+- verify a real TrueNAS deployment
+- expand automated coverage beyond the current baseline
+
+## Milestone 1 — Bootstrap (completed)
 
 Goal:
 Establish the public repository, project framing, and documentation baseline.
@@ -19,11 +25,12 @@ Target outputs:
 - architecture notes
 - Codex integration notes
 - TrueNAS direction notes
+- implementation blueprint
 - milestone plan
 
 This milestone should not include runtime code yet.
 
-## Milestone 2 — Local HTTP MCP prototype
+## Milestone 2 — Local HTTP MCP prototype (completed locally)
 
 Goal:
 Build the first local development version of the HTTP MCP bridge.
@@ -45,7 +52,7 @@ Success criteria:
 - can perform the first read operations
 - can perform at least one verified write operation
 
-## Milestone 3 — First useful tool set
+## Milestone 3 — First useful tool set (completed)
 
 Goal:
 Support the real-world operations needed for board workflows.
@@ -69,7 +76,7 @@ Success criteria:
 - labels can be applied
 - final state is verified and reported clearly
 
-## Milestone 4 — Containerization
+## Milestone 4 — Containerization (completed locally)
 
 Goal:
 Package the bridge for repeatable execution.
@@ -87,7 +94,7 @@ Success criteria:
 - container can run locally
 - health endpoint and MCP endpoint work inside the container
 
-## Milestone 5 — GHCR publication
+## Milestone 5 — GHCR publication (prepared, live publish pending)
 
 Goal:
 Make the image easy to reuse.
@@ -104,7 +111,7 @@ Success criteria:
 - image can be pulled from GHCR
 - image tags are documented clearly
 
-## Milestone 6 — TrueNAS custom app deployment
+## Milestone 6 — TrueNAS custom app deployment (docs complete, live deployment pending)
 
 Goal:
 Deploy the bridge to TrueNAS as an always-on LAN service.
@@ -122,13 +129,14 @@ Success criteria:
 - Codex can connect to it over HTTP
 - read and write operations behave consistently
 
-## Milestone 7 — Operational polish
+## Milestone 7 — Operational polish (in progress)
 
 Goal:
 Improve reliability and usability after real usage begins.
 
 Possible follow-ups:
 
+- broader automated unit and integration coverage
 - stronger error reporting
 - more idempotent behavior
 - more precise state verification
