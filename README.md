@@ -22,13 +22,16 @@ Verified in this repo:
 - `npm run test`
 - Docker image build
 - packaged smoke checks for `/healthz` and `/mcp`
+- real GHCR publication
+- real TrueNAS deployment
+- live `/healthz` validation against a real Vikunja instance
+- live `/mcp` auth validation over the LAN
+- fresh Codex read validation against the `Stonegate Descent` project
 
-Still pending in a real environment:
+Still worth expanding in a real environment:
 
-- live validation against a real Vikunja instance
-- a real GHCR publish and pull
-- a real TrueNAS deployment
-- broader integration and live-environment coverage
+- broader write-path validation from fresh Codex sessions
+- more live-environment usage coverage
 
 The goal of this project is to provide a stable HTTP MCP service that sits between AI coding tools and a self-hosted Vikunja instance.
 
@@ -79,6 +82,10 @@ Packaged in-repo:
 - manual GHCR publishing instructions
 - TrueNAS deployment guide
 - Codex configuration guide
+
+Known quirk:
+
+- `buckets_list` reflects bucket metadata from Vikunja, but bucket task counts may appear as `0` even when `tasks_list` for the kanban view shows tasks in those buckets. For actual bucket occupancy, treat `tasks_list` as the authoritative source.
 
 ## Not in the first version
 

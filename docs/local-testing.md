@@ -138,4 +138,8 @@ Validate these negative cases too:
 - `npm run typecheck` and `npm run build` pass in this repo.
 - `npm run test` now covers config parsing, HTTP/auth behavior, tool verification logic, and Vikunja client normalization.
 - the Docker image builds successfully, and a packaged smoke test confirmed `/healthz` and `/mcp` behavior inside the container.
-- This shell session did not have real `VIKUNJA_URL` and `VIKUNJA_API_TOKEN` values available, so a live Vikunja validation run still needs to be completed with real credentials.
+- a real GHCR image has now been published and pulled for deployment.
+- the bridge has now been deployed successfully on TrueNAS and is reachable over the LAN.
+- live validation confirmed `/healthz` returns `200` against a real Vikunja instance and `/mcp` returns `401` when called without the bearer token.
+- a fresh Codex session has now listed the `Stonegate Descent` project, its views, and its kanban tasks through the deployed bridge.
+- known quirk: `buckets_list` may show bucket count-style fields from Vikunja as `0` even when `tasks_list` for the same kanban view shows tasks present in those buckets. Use `tasks_list` as the authoritative source for occupancy.

@@ -2,15 +2,14 @@
 
 ## Current phase
 
-Post-Phase-7 validation and test coverage.
+Post-Phase-7 live deployment follow-through and operational polish.
 
 The implementation blueprint has been applied, the runtime exists, and packaging artifacts are in the repo.
 The remaining work is:
 
-- run the bridge against a real Vikunja instance
-- publish a real image
-- verify a real TrueNAS deployment
-- expand automated coverage beyond the current baseline
+- expand live write-path validation from fresh Codex sessions
+- continue reliability and usability polish from real usage
+- keep documentation aligned with proven deployment behavior
 
 ## Milestone 1 — Bootstrap (completed)
 
@@ -94,7 +93,7 @@ Success criteria:
 - container can run locally
 - health endpoint and MCP endpoint work inside the container
 
-## Milestone 5 — GHCR publication (prepared, live publish pending)
+## Milestone 5 — GHCR publication (completed)
 
 Goal:
 Make the image easy to reuse.
@@ -111,7 +110,7 @@ Success criteria:
 - image can be pulled from GHCR
 - image tags are documented clearly
 
-## Milestone 6 — TrueNAS custom app deployment (docs complete, live deployment pending)
+## Milestone 6 — TrueNAS custom app deployment (completed)
 
 Goal:
 Deploy the bridge to TrueNAS as an always-on LAN service.
@@ -127,7 +126,7 @@ Success criteria:
 
 - service reachable from the local network
 - Codex can connect to it over HTTP
-- read and write operations behave consistently
+- read operations behave consistently in live deployment
 
 ## Milestone 7 — Operational polish (in progress)
 
@@ -137,6 +136,7 @@ Improve reliability and usability after real usage begins.
 Possible follow-ups:
 
 - broader automated unit and integration coverage
+- broader live write-path validation from Codex sessions
 - stronger error reporting
 - more idempotent behavior
 - more precise state verification
