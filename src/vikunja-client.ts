@@ -382,6 +382,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function normalizeReactionMaps(value: unknown): VikunjaReactionMap[] {
+  if (value == null) {
+    return [];
+  }
+
   if (Array.isArray(value)) {
     return value as VikunjaReactionMap[];
   }
