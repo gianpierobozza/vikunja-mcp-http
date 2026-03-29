@@ -53,6 +53,7 @@ export type VikunjaTask = {
   bucket_id?: number;
   position?: number;
   related_tasks?: unknown;
+  reactions?: VikunjaReactionMap;
   due_date?: string | null;
   start_date?: string | null;
   end_date?: string | null;
@@ -100,10 +101,22 @@ export type VikunjaUser = {
   [key: string]: unknown;
 };
 
+export type ReactionEntityKind = "tasks" | "comments";
+
+export type VikunjaReaction = {
+  value: string;
+  user?: VikunjaUser;
+  created?: string;
+  [key: string]: unknown;
+};
+
+export type VikunjaReactionMap = Record<string, VikunjaUser[]>;
+
 export type VikunjaTaskComment = {
   id: number;
   comment: string;
   author?: VikunjaUser;
+  reactions?: VikunjaReactionMap;
   [key: string]: unknown;
 };
 
@@ -292,6 +305,17 @@ export interface VikunjaClientApi {
     comment: TaskCommentInput,
   ): Promise<VikunjaTaskComment>;
   deleteTaskComment(taskId: number, commentId: number): Promise<JsonRecord>;
+  listReactions(entityKind: ReactionEntityKind, entityId: number): Promise<VikunjaReactionMap[]>;
+  addReaction(
+    entityKind: ReactionEntityKind,
+    entityId: number,
+    reaction: string,
+  ): Promise<VikunjaReaction>;
+  removeReaction(
+    entityKind: ReactionEntityKind,
+    entityId: number,
+    reaction: string,
+  ): Promise<JsonRecord>;
   listTaskRelations(taskId: number): Promise<VikunjaTaskRelation[]>;
   createTaskRelation(taskId: number, relation: CreateTaskRelationInput): Promise<JsonRecord>;
   deleteTaskRelation(taskId: number, relation: CreateTaskRelationInput): Promise<JsonRecord>;
@@ -897,6 +921,45 @@ export class VikunjaClient implements VikunjaClientApi {
       `/tasks/${taskId}/comments/${commentId}`,
     );
     return this.assertObject<JsonRecord>(response.data, "Expected a delete response from Vikunja.");
+  }
+
+  async listReactions(entityKind: ReactionEntityKind, entityId: number): Promise<VikunjaReactionMap[]> {
+    const response = await this.request<VikunjaReactionMap[]>(
+      "GET",
+      `/${entityKind}/${entityId}/reactions`,
+    );
+    return assertArray<VikunjaReactionMap>(response.data, "Expected a reaction list from Vikunja.");
+  }
+
+  async addReaction(
+    entityKind: ReactionEntityKind,
+    entityId: number,
+    reaction: string,
+  ): Promise<VikunjaReaction> {
+    const response = await this.request<VikunjaReaction>("PUT", `/${entityKind}/${entityId}/reactions`, {
+      body: {
+        value: reaction,
+      },
+      expectedStatusCodes: [200, 201],
+    });
+    return this.assertObject<VikunjaReaction>(response.data, "Expected a reaction object from Vikunja.");
+  }
+
+  async removeReaction(
+    entityKind: ReactionEntityKind,
+    entityId: number,
+    reaction: string,
+  ): Promise<JsonRecord> {
+    const response = await this.request<JsonRecord>(
+      "POST",
+      `/${entityKind}/${entityId}/reactions/delete`,
+      {
+        body: {
+          value: reaction,
+        },
+      },
+    );
+    return this.assertObject<JsonRecord>(response.data, "Expected a reaction delete response from Vikunja.");
   }
 
   async listTaskRelations(taskId: number): Promise<VikunjaTaskRelation[]> {

@@ -9,6 +9,7 @@ import { registerBucketTools } from "./tools/buckets.js";
 import { registerCommentTools } from "./tools/comments.js";
 import { registerLabelTools } from "./tools/labels.js";
 import { registerProjectTools } from "./tools/projects.js";
+import { registerReactionTools } from "./tools/reactions.js";
 import { registerRelationTools } from "./tools/relations.js";
 import { registerTaskTools } from "./tools/tasks.js";
 import { registerUserTools } from "./tools/users.js";
@@ -62,6 +63,7 @@ export function createMcpServer(client: VikunjaClientApi): McpServer {
   registerLabelTools(server, client);
   registerUserTools(server, client);
   registerCommentTools(server, client);
+  registerReactionTools(server, client);
   registerRelationTools(server, client);
   registerViewTools(server, client);
   registerBucketTools(server, client);

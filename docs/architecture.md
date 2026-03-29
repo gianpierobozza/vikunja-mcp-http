@@ -60,6 +60,7 @@ The implemented capability set is now:
 - label tools: `labels_list`, `label_get`, `label_create`, `label_update`, `label_delete`, `task_labels_list`, `task_add_label`, `task_remove_label`
 - user and assignee tools: `users_search`, `task_assignees_list`, `task_assign_user`, `task_unassign_user`
 - comment tools: `task_comments_list`, `task_comment_get`, `task_comment_create`, `task_comment_update`, `task_comment_delete`
+- reaction tools: `reactions_list`, `reaction_add`, `reaction_remove`
 - relation tools: `task_relations_list`, `task_relation_create`, `task_relation_delete`
 - view tools: `views_list`, `view_create`, `view_update`, `view_delete`
 - bucket tools: `buckets_list`, `bucket_create`, `bucket_update`, `bucket_delete`
@@ -79,6 +80,11 @@ For task relations:
 
 - `task_relations_list` is derived from the task's `related_tasks` state
 - the current Vikunja OpenAPI exposes relation create/delete endpoints but not a dedicated GET relation-list endpoint
+
+For reactions:
+
+- the bridge exposes generic reaction tools instead of separate task/comment variants
+- the supported entity kinds are the ones currently documented by Vikunja here: `tasks` and `comments`
 
 ## Write verification rule
 

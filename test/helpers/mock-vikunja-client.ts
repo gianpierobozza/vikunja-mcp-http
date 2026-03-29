@@ -131,6 +131,15 @@ export function createMockVikunjaClient(
       comment: "Example comment",
     }),
     deleteTaskComment: vi.fn().mockResolvedValue({}),
+    listReactions: vi.fn().mockResolvedValue([]),
+    addReaction: vi.fn().mockResolvedValue({
+      value: "😀",
+      user: {
+        id: 1,
+        username: "gm",
+      },
+    }),
+    removeReaction: vi.fn().mockResolvedValue({}),
     listTaskRelations: vi.fn().mockResolvedValue([]),
     createTaskRelation: vi.fn().mockResolvedValue({}),
     deleteTaskRelation: vi.fn().mockResolvedValue({}),

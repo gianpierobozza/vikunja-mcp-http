@@ -192,6 +192,19 @@ describe("additional MCP tool coverage", () => {
     });
   });
 
+  it("returns a tool error when reactions_list fails", async () => {
+    await withServer(async (server, client) => {
+      client.listReactions.mockRejectedValueOnce(new Error("reactions unavailable"));
+
+      const result = await callTool(server, "reactions_list", {
+        entity_kind: "comments",
+        entity_id: 12,
+      });
+
+      expect(getErrorText(result)).toBe("Error in reactions_list: reactions unavailable");
+    });
+  });
+
   it("covers the defensive task_create title check", async () => {
     await withServer(async (server) => {
       const taskCreate = getRegisteredTool(server, "task_create") as {
