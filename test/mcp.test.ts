@@ -33,7 +33,7 @@ afterEach(() => {
 });
 
 describe("createMcpServer", () => {
-  it("registers the expected v1 tool set", async () => {
+  it("registers the expected core work tool set", async () => {
     const server = createMcpServer(createMockVikunjaClient());
 
     try {
@@ -43,14 +43,44 @@ describe("createMcpServer", () => {
         ),
       ).toEqual([
         "projects_list",
+        "project_get",
+        "project_create",
+        "project_update",
+        "project_delete",
         "tasks_list",
         "task_get",
         "task_create",
         "task_update",
+        "task_delete",
+        "task_move",
         "labels_list",
+        "label_get",
+        "label_create",
+        "label_update",
+        "label_delete",
+        "task_labels_list",
         "task_add_label",
+        "task_remove_label",
+        "users_search",
+        "task_assignees_list",
+        "task_assign_user",
+        "task_unassign_user",
+        "task_comments_list",
+        "task_comment_get",
+        "task_comment_create",
+        "task_comment_update",
+        "task_comment_delete",
+        "task_relations_list",
+        "task_relation_create",
+        "task_relation_delete",
         "views_list",
+        "view_create",
+        "view_update",
+        "view_delete",
         "buckets_list",
+        "bucket_create",
+        "bucket_update",
+        "bucket_delete",
       ]);
     } finally {
       await server.close();

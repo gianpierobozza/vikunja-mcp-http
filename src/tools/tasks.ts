@@ -2,7 +2,17 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
 import type { CreateTaskInput, VikunjaClientApi, VikunjaTask } from "../vikunja-client.js";
-import { toolErrorResult, asJsonText, asTextContent, withToolLogging } from "./shared.js";
+import {
+  ensureConfirmed,
+  ensureNumericId,
+  ensurePatchFields,
+  isEquivalentValue,
+  isNotFoundError,
+  toolErrorResult,
+  toolSuccessResult,
+  verifyRequestedFields,
+  withToolLogging,
+} from "./shared.js";
 
 const optionalTaskMutationSchema = {
   description: z.string().optional().describe("Task description."),
@@ -93,46 +103,8 @@ function buildTaskPatch(args: Record<string, unknown>): TaskPatch {
   return patch;
 }
 
-function requestedFields(patch: TaskPatch): Array<keyof TaskPatch> {
-  return Object.keys(patch) as Array<keyof TaskPatch>;
-}
-
-function isEquivalentValue(expected: unknown, actual: unknown): boolean {
-  if (expected == null && actual == null) {
-    return true;
-  }
-
-  if (typeof expected === "string" && typeof actual === "string") {
-    const expectedTime = Date.parse(expected);
-    const actualTime = Date.parse(actual);
-
-    if (!Number.isNaN(expectedTime) && !Number.isNaN(actualTime)) {
-      return expectedTime === actualTime;
-    }
-  }
-
-  return expected === actual;
-}
-
-function verifyTaskFields(operation: string, patch: TaskPatch, task: VikunjaTask): Array<keyof TaskPatch> {
-  const fields = requestedFields(patch);
-  const mismatchedField = fields.find((field) => !isEquivalentValue(patch[field], task[field]));
-
-  if (mismatchedField) {
-    throw new Error(
-      `${operation} verification failed: field "${mismatchedField}" did not match the final task state.`,
-    );
-  }
-
-  return fields;
-}
-
 function ensureTaskId(task: VikunjaTask, operation: string): number {
-  if (typeof task.id !== "number") {
-    throw new Error(`${operation} failed: Vikunja did not return a numeric task id.`);
-  }
-
-  return task.id;
+  return ensureNumericId(task.id, operation, "task id");
 }
 
 export function registerTaskTools(server: McpServer, client: VikunjaClientApi): void {
@@ -190,10 +162,7 @@ export function registerTaskTools(server: McpServer, client: VikunjaClientApi): 
           orderBy: order_by,
         });
 
-        return {
-          content: asTextContent(asJsonText(result)),
-          structuredContent: result,
-        };
+        return toolSuccessResult(result);
       } catch (error) {
         return toolErrorResult("tasks_list", error);
       }
@@ -216,12 +185,7 @@ export function registerTaskTools(server: McpServer, client: VikunjaClientApi): 
     withToolLogging("task_get", async ({ task_id, expand }) => {
       try {
         const task = await client.getTask(task_id, { expand });
-        const result = { task };
-
-        return {
-          content: asTextContent(asJsonText(result)),
-          structuredContent: result,
-        };
+        return toolSuccessResult({ task });
       } catch (error) {
         return toolErrorResult("task_get", error);
       }
@@ -260,20 +224,16 @@ export function registerTaskTools(server: McpServer, client: VikunjaClientApi): 
 
         const createdTask = await client.createTask(project_id, createInput);
         const finalTask = await client.getTask(ensureTaskId(createdTask, "task_create"));
-        const checkedFields = verifyTaskFields("task_create", patch, finalTask);
-        const result = {
+        const checkedFields = verifyRequestedFields("task_create", patch, finalTask);
+
+        return toolSuccessResult({
           task: finalTask,
           verification: {
             operation: "task_create",
             checked_fields: checkedFields,
             verified: true,
           },
-        };
-
-        return {
-          content: asTextContent(asJsonText(result)),
-          structuredContent: result,
-        };
+        });
       } catch (error) {
         return toolErrorResult("task_create", error);
       }
@@ -293,22 +253,12 @@ export function registerTaskTools(server: McpServer, client: VikunjaClientApi): 
       try {
         const { task_id } = args;
         const patch = buildTaskPatch(args);
-        const fields = requestedFields(patch);
-
-        if (fields.length === 0) {
-          return toolErrorResult(
-            "task_update",
-            new Error("At least one updatable field must be provided."),
-          );
-        }
-
+        const fields = ensurePatchFields("task_update", patch);
         const currentTask = await client.getTask(task_id);
-        const alreadySatisfied = fields.every((field) =>
-          isEquivalentValue(patch[field], currentTask[field]),
-        );
+        const alreadySatisfied = fields.every((field) => isEquivalentValue(patch[field], currentTask[field]));
 
         if (alreadySatisfied) {
-          const result = {
+          return toolSuccessResult({
             task: currentTask,
             verification: {
               operation: "task_update",
@@ -316,12 +266,7 @@ export function registerTaskTools(server: McpServer, client: VikunjaClientApi): 
               verified: true,
               already_satisfied: true,
             },
-          };
-
-          return {
-            content: asTextContent(asJsonText(result)),
-            structuredContent: result,
-          };
+          });
         }
 
         await client.updateTask(task_id, {
@@ -330,8 +275,9 @@ export function registerTaskTools(server: McpServer, client: VikunjaClientApi): 
         });
 
         const finalTask = await client.getTask(task_id);
-        const checkedFields = verifyTaskFields("task_update", patch, finalTask);
-        const result = {
+        const checkedFields = verifyRequestedFields("task_update", patch, finalTask);
+
+        return toolSuccessResult({
           task: finalTask,
           verification: {
             operation: "task_update",
@@ -339,14 +285,111 @@ export function registerTaskTools(server: McpServer, client: VikunjaClientApi): 
             verified: true,
             already_satisfied: false,
           },
-        };
-
-        return {
-          content: asTextContent(asJsonText(result)),
-          structuredContent: result,
-        };
+        });
       } catch (error) {
         return toolErrorResult("task_update", error);
+      }
+    }),
+  );
+
+  server.registerTool(
+    "task_delete",
+    {
+      description: "Delete a task and verify it is no longer accessible.",
+      inputSchema: {
+        task_id: z.number().int().positive().describe("Task id."),
+        confirm: z.boolean().optional().describe("Must be true to delete the task."),
+      },
+    },
+    withToolLogging("task_delete", async ({ task_id, confirm }) => {
+      try {
+        ensureConfirmed("task_delete", confirm);
+
+        const task = await client.getTask(task_id);
+        await client.deleteTask(task_id);
+
+        let deleted = false;
+
+        try {
+          await client.getTask(task_id);
+        } catch (error) {
+          if (isNotFoundError(error)) {
+            deleted = true;
+          } else {
+            throw error;
+          }
+        }
+
+        if (!deleted) {
+          throw new Error("task_delete verification failed: task is still accessible after deletion.");
+        }
+
+        return toolSuccessResult({
+          deleted: task,
+          verification: {
+            operation: "task_delete",
+            verified: true,
+          },
+        });
+      } catch (error) {
+        return toolErrorResult("task_delete", error);
+      }
+    }),
+  );
+
+  server.registerTool(
+    "task_move",
+    {
+      description: "Move a task to a different bucket and optionally request a new position.",
+      inputSchema: {
+        task_id: z.number().int().positive().describe("Task id."),
+        project_id: z.number().int().positive().describe("Project id."),
+        view_id: z.number().int().positive().describe("Project view id."),
+        bucket_id: z.number().int().positive().describe("Destination bucket id."),
+        position: z.number().optional().describe("Optional target position within the destination view."),
+      },
+    },
+    withToolLogging("task_move", async ({ task_id, project_id, view_id, bucket_id, position }) => {
+      try {
+        await client.moveTaskToBucket(project_id, view_id, bucket_id, task_id);
+
+        if (position !== undefined) {
+          await client.updateTaskPosition(task_id, {
+            project_view_id: view_id,
+            position,
+          });
+        }
+
+        const finalTask = await client.getTask(task_id);
+
+        if (finalTask.bucket_id !== bucket_id) {
+          throw new Error(
+            `task_move verification failed: expected bucket_id ${bucket_id}, got ${String(finalTask.bucket_id)}.`,
+          );
+        }
+
+        const positionMatched =
+          position !== undefined && typeof finalTask.position === "number"
+            ? finalTask.position === position
+            : undefined;
+
+        return toolSuccessResult({
+          task: finalTask,
+          verification: {
+            operation: "task_move",
+            checked_fields: ["bucket_id"],
+            verified: true,
+            position_requested: position ?? null,
+            position_verification:
+              position === undefined
+                ? "not_requested"
+                : positionMatched === true
+                  ? "matched"
+                  : "best_effort",
+          },
+        });
+      } catch (error) {
+        return toolErrorResult("task_move", error);
       }
     }),
   );

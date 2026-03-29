@@ -6,6 +6,12 @@ This document captured the initial implementation shape for `vikunja-mcp-http` b
 
 The runtime now exists and follows this blueprint closely, so this file is both a design record and a reference point for future changes.
 
+Important scope note:
+
+- this file documents the original baseline implementation shape
+- the current repo has since expanded beyond the original v1 tool surface into a broader core work-management API
+- for the current live tool inventory and validation state, prefer `README.md`, `docs/architecture.md`, and `docs/local-testing.md`
+
 The original goal was to make Phase 3 low-risk:
 
 - package manager setup should be minimal and unsurprising
