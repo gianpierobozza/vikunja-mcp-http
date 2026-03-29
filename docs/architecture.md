@@ -132,7 +132,8 @@ The current implementation uses:
 - Zod for config validation
 - stateless Streamable HTTP transport
 - Docker packaging
-- manual GHCR release documentation
+- GitHub Actions CI and automated GHCR publishing
+- manual GHCR publishing fallback documentation
 - TrueNAS custom app deployment docs
 
 ## Current validation state
@@ -152,5 +153,6 @@ The repository has been validated through:
 
 What is still external to the repo:
 
+- first live GitHub Actions publish run after the next merge to `main`
 - broader write-path validation from fresh Codex sessions
 - more live-environment usage coverage

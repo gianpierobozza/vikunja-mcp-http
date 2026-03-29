@@ -28,10 +28,16 @@ Verified in this repo:
 - live `/mcp` auth validation over the LAN
 - fresh Codex read validation against the `Stonegate Descent` project
 
+Automation now configured in the repo:
+
+- GitHub Actions CI on pull requests and feature-branch pushes
+- automatic GHCR publish on `main` merges using `latest` and `sha-<shortsha>` tags
+
 Still worth expanding in a real environment:
 
 - broader write-path validation from fresh Codex sessions
 - more live-environment usage coverage
+- first live GitHub Actions publish run after the next merge to `main`
 
 The goal of this project is to provide a stable HTTP MCP service that sits between AI coding tools and a self-hosted Vikunja instance.
 
@@ -79,7 +85,8 @@ Packaged in-repo:
 
 - Docker image
 - `.env.example`
-- manual GHCR publishing instructions
+- GitHub Actions CI and automated GHCR publishing
+- manual GHCR publishing fallback instructions
 - TrueNAS deployment guide
 - Codex configuration guide
 

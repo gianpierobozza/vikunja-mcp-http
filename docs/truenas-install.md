@@ -24,7 +24,7 @@ For v1 it requires:
 
 Before installing on TrueNAS, have these ready:
 
-- a published OCI image, for example `ghcr.io/YOUR_GITHUB_NAMESPACE/vikunja-mcp-http:latest`
+- a published OCI image, preferably an immutable tag such as `ghcr.io/YOUR_GITHUB_NAMESPACE/vikunja-mcp-http:sha-<shortsha>`
 - the base URL for your Vikunja instance
 - a Vikunja API token for the bridge
 - a bearer token that Codex or other MCP clients will send to `/mcp`
@@ -43,7 +43,7 @@ name: vikunja-mcp-http
 
 services:
   app:
-    image: ghcr.io/YOUR_GITHUB_NAMESPACE/vikunja-mcp-http:latest
+    image: ghcr.io/YOUR_GITHUB_NAMESPACE/vikunja-mcp-http:sha-<shortsha>
     restart: unless-stopped
     environment:
       PORT: "4010"
@@ -57,6 +57,8 @@ services:
 
 Notes:
 
+- prefer a `sha-<shortsha>` image tag for repeatable deployments and rollback clarity
+- reserve `:latest` for quick smoke tests or when you explicitly want the newest image
 - keep the host and container port the same for the first deployment
 - no volume mounts are needed for v1
 - if you later change `PORT`, update the container-side port mapping too
