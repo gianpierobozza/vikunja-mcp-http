@@ -2,24 +2,83 @@
 
 ## Goal
 
-This document records the simplest Phase 7 release path for `vikunja-mcp-http`.
+This document records the default GHCR release path for `vikunja-mcp-http`.
 
-The project now ships with a `Dockerfile`, but it does not yet require a GitHub Actions workflow.
-For v1, a documented manual GHCR publish flow is enough.
+The repository now includes GitHub Actions workflows that:
 
-The Docker image shape has already been validated locally in this repo with a successful `docker build`.
+- run CI on pull requests to `main`
+- run CI on feature-branch pushes
+- publish the container image automatically when a merge lands on `main`
+
+The Docker image shape has already been validated locally in this repo with a successful `docker build`, manual GHCR publication, and a real TrueNAS deployment.
 
 ## Prerequisites
 
-Before publishing:
+Before relying on the automated publish path:
 
-- Docker is installed on the machine doing the build
-- the repository has a real GitHub remote
-- you know the target image name, for example `ghcr.io/YOUR_GITHUB_NAMESPACE/vikunja-mcp-http`
-- you have a GitHub personal access token (classic) with `write:packages`
-- if the package will stay private, you also have `read:packages` available for pull validation
+- GitHub Actions is enabled for the repository
+- the repository has permission to publish to `ghcr.io/YOUR_GITHUB_NAMESPACE/vikunja-mcp-http`
+- if the GHCR package was created manually before the workflow existed, confirm the package is linked to this repository or grant this repository GitHub Actions access in the package settings
+- if the package will stay private, downstream pull environments still need GHCR credentials
 
-## Build the Image Locally
+## Default Automated Path
+
+The default release flow is now:
+
+1. push work to a feature branch
+2. open a pull request into `main`
+3. let the `CI` workflow run the verification checks
+4. merge the pull request
+5. let the `Publish GHCR Image` workflow build, test, and push the image
+
+The publish workflow runs on `push` to `main`, which matches the current branch-protection model where direct pushes to `main` are blocked and merges happen through pull requests.
+
+Published tags on every successful `main` merge:
+
+- `ghcr.io/YOUR_GITHUB_NAMESPACE/vikunja-mcp-http:latest`
+- `ghcr.io/YOUR_GITHUB_NAMESPACE/vikunja-mcp-http:sha-<shortsha>`
+
+Tag guidance:
+
+- use `latest` for quick smoke tests or when you explicitly want the newest image
+- use `sha-<shortsha>` for TrueNAS installs you may want to reproduce or roll back
+
+## What the Workflows Run
+
+The workflows use the repository `GITHUB_TOKEN` with `contents: read`, and for the publish job also `packages: write`.
+
+Quality gates run before publishing:
+
+- `npm ci`
+- `npm run typecheck`
+- `npm run test`
+- `docker build`
+
+The publish workflow then pushes the image to:
+
+```text
+ghcr.io/YOUR_GITHUB_NAMESPACE/vikunja-mcp-http
+```
+
+with OCI metadata including:
+
+- image title
+- source repository
+- revision SHA
+
+## First-Time Validation Checklist
+
+After the first merge to `main` with the new workflow in place:
+
+1. open the `Actions` tab and confirm `CI` passed on the pull request
+2. confirm `Publish GHCR Image` ran on the merge commit in `main`
+3. check the GHCR package page for fresh `latest` and `sha-<shortsha>` tags
+4. pull the new SHA tag locally
+5. run the image with the required environment and recheck `/healthz` and `/mcp`
+
+## Manual Fallback Path
+
+If GitHub Actions is unavailable or the repository/package linkage is not ready yet, the local manual publish flow is still a supported fallback.
 
 Choose the image coordinates and a release tag:
 
@@ -39,9 +98,7 @@ docker build \
   .
 ```
 
-## Publish to GHCR
-
-Authenticate to GitHub Container Registry:
+Authenticate to GHCR:
 
 ```bash
 export CR_PAT="YOUR_GITHUB_CLASSIC_PAT"
@@ -90,13 +147,3 @@ Then check:
 `/mcp` still requires the bearer token, so use the validation flow in `docs/local-testing.md`.
 
 For repeatable local runs, the same values can also be stored in a real env file based on `.env.example`.
-
-## Why This Is Manual in v1
-
-GitHub's container registry works well with automated workflows, but the project does not need a CI publishing pipeline before the first real deployment.
-
-This manual flow keeps Phase 7 small and reviewable:
-
-- the image format is fixed now
-- the registry path is documented now
-- automation can be added later without changing the container contract
