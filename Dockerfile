@@ -34,6 +34,6 @@ USER node
 
 EXPOSE 4010
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 CMD node -e "const http = require('node:http'); const port = Number(process.env.PORT || 4010); const req = http.get({ host: '127.0.0.1', port, path: '/healthz' }, (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }); req.on('error', () => process.exit(1));"
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 CMD node -e "const http = require('node:http'); const port = Number(process.env.PORT || 4010); const req = http.get({ host: '127.0.0.1', port, path: '/healthz', timeout: 4000 }, (res) => { res.resume(); process.exit(res.statusCode === 200 ? 0 : 1); }); req.on('timeout', () => { req.destroy(new Error('timeout')); process.exit(1); }); req.on('error', () => process.exit(1));"
 
 CMD ["node", "dist/server.js"]
