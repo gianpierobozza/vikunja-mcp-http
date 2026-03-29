@@ -93,6 +93,7 @@ Packaged in-repo:
 Known quirk:
 
 - `buckets_list` reflects bucket metadata from Vikunja, but bucket task counts may appear as `0` even when `tasks_list` for the kanban view shows tasks in those buckets. For actual bucket occupancy, treat `tasks_list` as the authoritative source.
+- plain `task_get` may report `bucket_id: 0` for kanban tasks even when the task is visibly placed in a real bucket on the board. `task_move` verification now prefers `task_get` with `expand=["buckets"]` and falls back to `tasks_list` for the target kanban view when it needs authoritative placement.
 - `task_relations_list` is derived from the task's `related_tasks` state because the current Vikunja OpenAPI exposes relation create/delete operations but not a dedicated relation-list endpoint.
 - reaction tools support the Vikunja entity kinds currently exposed by the official API here: `tasks` and `comments`.
 

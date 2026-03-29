@@ -51,6 +51,7 @@ export type VikunjaTask = {
   percent_done?: number;
   project_id?: number;
   bucket_id?: number;
+  buckets?: VikunjaBucket[];
   position?: number;
   related_tasks?: unknown;
   reactions?: VikunjaReactionMap;

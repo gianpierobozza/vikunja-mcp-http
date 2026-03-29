@@ -354,7 +354,8 @@ describe("Milestone 8 coverage branches", () => {
       client.getTask.mockResolvedValueOnce({
         id: 16,
         title: "BOARD RULES",
-        bucket_id: 8,
+        bucket_id: 0,
+        buckets: [{ id: 8, title: "Doing", project_view_id: 9 }],
       });
 
       const result = await callTool(server, "task_move", {
@@ -371,6 +372,53 @@ describe("Milestone 8 coverage branches", () => {
         verified: true,
         position_requested: null,
         position_verification: "not_requested",
+      });
+      expect(client.listTasks).not.toHaveBeenCalled();
+    });
+  });
+
+  it("covers task_move board fallback when expanded buckets are unavailable", async () => {
+    await withServer(async (server, client) => {
+      client.getTask.mockResolvedValueOnce({
+        id: 16,
+        title: "BOARD RULES",
+        bucket_id: 0,
+      });
+      client.listTasks.mockResolvedValueOnce({
+        items: [
+          {
+            id: 22,
+            title: "Loose task row",
+          },
+          {
+            id: 8,
+            title: "Doing",
+            project_view_id: 9,
+            tasks: [{ id: 16, title: "BOARD RULES", position: 2 }],
+          },
+        ],
+        pagination: {
+          page: 1,
+          per_page: 1000,
+          total_pages: 1,
+          result_count: 2,
+        },
+      });
+
+      const result = await callTool(server, "task_move", {
+        task_id: 16,
+        project_id: 7,
+        view_id: 9,
+        bucket_id: 8,
+        position: 2,
+      });
+
+      expect(getStructuredContent(result).verification).toEqual({
+        operation: "task_move",
+        checked_fields: ["bucket_id"],
+        verified: true,
+        position_requested: 2,
+        position_verification: "matched",
       });
     });
   });

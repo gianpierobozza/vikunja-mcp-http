@@ -71,10 +71,13 @@ This is intentionally broader than the original v1 baseline, but it is still sma
 
 In live testing, `buckets_list` has been reliable for bucket identity, title, limits, and ordering, but bucket count-style metadata from Vikunja may still appear as `0` even when tasks are visibly present in those buckets through the kanban task view.
 
+Plain `task_get` reads may also report `bucket_id: 0` for kanban tasks even when the same task is clearly placed in a real bucket on the board.
+
 For actual task placement within a kanban board:
 
 - treat `tasks_list` for the target view as the authoritative source
 - treat `buckets_list` as bucket metadata rather than occupancy truth
+- for `task_move` verification, prefer `task_get` with `expand=["buckets"]` and fall back to `tasks_list` for the target board when bucket placement needs to be confirmed
 
 For task relations:
 

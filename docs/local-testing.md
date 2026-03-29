@@ -139,7 +139,8 @@ Suggested sequence:
 
 Notes:
 
-- `task_move` prioritizes verified bucket placement; position is best-effort unless the final task state matches exactly
+- plain `task_get` may report `bucket_id: 0` for kanban tasks even when the board shows a real bucket
+- `task_move` verifies bucket placement from `task_get` with `expand=["buckets"]` and falls back to `tasks_list` for the board when needed; position is still best-effort unless the board view confirms an exact match
 - reaction tools currently support the Vikunja entity kinds `tasks` and `comments`
 - `task_relations_list` is derived from the task's `related_tasks` state because the current Vikunja OpenAPI does not expose a dedicated relation-list endpoint
 - if user assignment is not available in your Vikunja setup, skip the assignee steps and note the external limitation

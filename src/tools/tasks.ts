@@ -1,7 +1,12 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
-import type { CreateTaskInput, VikunjaClientApi, VikunjaTask } from "../vikunja-client.js";
+import type {
+  CreateTaskInput,
+  VikunjaBucket,
+  VikunjaClientApi,
+  VikunjaTask,
+} from "../vikunja-client.js";
 import {
   ensureConfirmed,
   ensureNumericId,
@@ -105,6 +110,50 @@ function buildTaskPatch(args: Record<string, unknown>): TaskPatch {
 
 function ensureTaskId(task: VikunjaTask, operation: string): number {
   return ensureNumericId(task.id, operation, "task id");
+}
+
+type TaskBoardPlacement = {
+  bucket_id?: number;
+  position?: number;
+};
+
+function isBucketWithTasks(item: VikunjaTask | VikunjaBucket): item is VikunjaBucket & { tasks: VikunjaTask[] } {
+  return Array.isArray((item as VikunjaBucket).tasks);
+}
+
+function getExpandedBucketIdForView(task: VikunjaTask, viewId: number): number | undefined {
+  if (!Array.isArray(task.buckets)) {
+    return undefined;
+  }
+
+  const matchingBuckets = task.buckets.filter(
+    (bucket): bucket is VikunjaBucket =>
+      typeof bucket?.id === "number" && bucket.project_view_id === viewId,
+  );
+
+  return matchingBuckets.length === 1 ? matchingBuckets[0]?.id : undefined;
+}
+
+function findTaskPlacementInBoard(
+  items: Array<VikunjaTask | VikunjaBucket>,
+  taskId: number,
+): TaskBoardPlacement | undefined {
+  for (const item of items) {
+    if (!isBucketWithTasks(item)) {
+      continue;
+    }
+
+    const task = item.tasks.find((candidate) => candidate.id === taskId);
+
+    if (task) {
+      return {
+        bucket_id: typeof item.id === "number" ? item.id : undefined,
+        position: typeof task.position === "number" ? task.position : undefined,
+      };
+    }
+  }
+
+  return undefined;
 }
 
 export function registerTaskTools(server: McpServer, client: VikunjaClientApi): void {
@@ -360,18 +409,29 @@ export function registerTaskTools(server: McpServer, client: VikunjaClientApi): 
           });
         }
 
-        const finalTask = await client.getTask(task_id);
+        const finalTask = await client.getTask(task_id, {
+          expand: ["buckets"],
+        });
 
-        if (finalTask.bucket_id !== bucket_id) {
+        const expandedBucketId = getExpandedBucketIdForView(finalTask, view_id);
+        let boardPlacement: TaskBoardPlacement | undefined;
+
+        if (position !== undefined || expandedBucketId !== bucket_id) {
+          const board = await client.listTasks(project_id, view_id);
+          boardPlacement = findTaskPlacementInBoard(board.items, task_id);
+        }
+
+        const verifiedBucketId =
+          expandedBucketId === bucket_id ? expandedBucketId : boardPlacement?.bucket_id;
+
+        if (verifiedBucketId !== bucket_id) {
+          const actualBucketId = boardPlacement?.bucket_id ?? expandedBucketId ?? finalTask.bucket_id;
           throw new Error(
-            `task_move verification failed: expected bucket_id ${bucket_id}, got ${String(finalTask.bucket_id)}.`,
+            `task_move verification failed: expected bucket_id ${bucket_id}, got ${String(actualBucketId)}.`,
           );
         }
 
-        const positionMatched =
-          position !== undefined && typeof finalTask.position === "number"
-            ? finalTask.position === position
-            : undefined;
+        const positionMatched = position !== undefined ? boardPlacement?.position === position : undefined;
 
         return toolSuccessResult({
           task: finalTask,
