@@ -296,8 +296,24 @@ describe("Milestone 8 MCP tools", () => {
       client.getTask.mockResolvedValueOnce({
         id: 16,
         title: "BOARD RULES",
-        bucket_id: 8,
-        position: 0.5,
+        bucket_id: 0,
+        buckets: [{ id: 8, title: "Doing", project_view_id: 9 }],
+      });
+      client.listTasks.mockResolvedValueOnce({
+        items: [
+          {
+            id: 8,
+            title: "Doing",
+            project_view_id: 9,
+            tasks: [{ id: 16, title: "BOARD RULES", position: 0.5 }],
+          },
+        ],
+        pagination: {
+          page: 1,
+          per_page: 1000,
+          total_pages: 1,
+          result_count: 1,
+        },
       });
 
       const result = await callTool(server, "task_move", {
@@ -313,6 +329,10 @@ describe("Milestone 8 MCP tools", () => {
         project_view_id: 9,
         position: 1,
       });
+      expect(client.getTask).toHaveBeenCalledWith(16, {
+        expand: ["buckets"],
+      });
+      expect(client.listTasks).toHaveBeenCalledWith(7, 9);
       expect(getStructuredContent(result).verification).toEqual({
         operation: "task_move",
         checked_fields: ["bucket_id"],
@@ -320,6 +340,131 @@ describe("Milestone 8 MCP tools", () => {
         position_requested: 1,
         position_verification: "best_effort",
       });
+    });
+  });
+
+  it("falls back to the board view when expanded task buckets do not confirm the move", async () => {
+    await withServer(async (server, client) => {
+      client.getTask.mockResolvedValueOnce({
+        id: 16,
+        title: "BOARD RULES",
+        bucket_id: 0,
+        buckets: [{ id: 6, title: "Inbox", project_view_id: 12 }],
+      });
+      client.listTasks.mockResolvedValueOnce({
+        items: [
+          {
+            id: 8,
+            title: "Doing",
+            project_view_id: 9,
+            tasks: [{ id: 16, title: "BOARD RULES", position: 1 }],
+          },
+        ],
+        pagination: {
+          page: 1,
+          per_page: 1000,
+          total_pages: 1,
+          result_count: 1,
+        },
+      });
+
+      const result = await callTool(server, "task_move", {
+        task_id: 16,
+        project_id: 7,
+        view_id: 9,
+        bucket_id: 8,
+      });
+
+      expect(client.getTask).toHaveBeenCalledWith(16, {
+        expand: ["buckets"],
+      });
+      expect(client.listTasks).toHaveBeenCalledWith(7, 9);
+      expect(getStructuredContent(result).verification).toEqual({
+        operation: "task_move",
+        checked_fields: ["bucket_id"],
+        verified: true,
+        position_requested: null,
+        position_verification: "not_requested",
+      });
+    });
+  });
+
+  it("uses the board view position to report a matched move position", async () => {
+    await withServer(async (server, client) => {
+      client.getTask.mockResolvedValueOnce({
+        id: 16,
+        title: "BOARD RULES",
+        bucket_id: 0,
+        buckets: [{ id: 8, title: "Doing", project_view_id: 9 }],
+      });
+      client.listTasks.mockResolvedValueOnce({
+        items: [
+          {
+            id: 8,
+            title: "Doing",
+            project_view_id: 9,
+            tasks: [{ id: 16, title: "BOARD RULES", position: 1 }],
+          },
+        ],
+        pagination: {
+          page: 1,
+          per_page: 1000,
+          total_pages: 1,
+          result_count: 1,
+        },
+      });
+
+      const result = await callTool(server, "task_move", {
+        task_id: 16,
+        project_id: 7,
+        view_id: 9,
+        bucket_id: 8,
+        position: 1,
+      });
+
+      expect(getStructuredContent(result).verification).toEqual({
+        operation: "task_move",
+        checked_fields: ["bucket_id"],
+        verified: true,
+        position_requested: 1,
+        position_verification: "matched",
+      });
+    });
+  });
+
+  it("returns a verification error when neither task expansion nor board view confirms the bucket", async () => {
+    await withServer(async (server, client) => {
+      client.getTask.mockResolvedValueOnce({
+        id: 16,
+        title: "BOARD RULES",
+        bucket_id: 0,
+        buckets: [{ id: 6, title: "Inbox", project_view_id: 9 }],
+      });
+      client.listTasks.mockResolvedValueOnce({
+        items: [
+          {
+            id: 7,
+            title: "Next 5",
+            project_view_id: 9,
+            tasks: [],
+          },
+        ],
+        pagination: {
+          page: 1,
+          per_page: 1000,
+          total_pages: 1,
+          result_count: 1,
+        },
+      });
+
+      const result = await callTool(server, "task_move", {
+        task_id: 16,
+        project_id: 7,
+        view_id: 9,
+        bucket_id: 8,
+      });
+
+      expect(getErrorText(result)).toContain("task_move verification failed: expected bucket_id 8, got 6.");
     });
   });
 
